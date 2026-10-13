@@ -20,7 +20,9 @@ _SHAPES = {
     "settings": '<path d="M4 6h4m4 0h8M4 12h9m4 0h3M4 18h2m4 0h10"/><circle cx="10" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="8" cy="18" r="2"/>',
     "toolbox": '<rect x="3.5" y="8" width="17" height="12" rx="2"/><path d="M8 8V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v3M3.5 12.5h17M8 11v3m8-3v3"/>',
     "plug": '<path d="M9 3v4m6-4v4M6 7h12v3a6 6 0 0 1-12 0V7Zm6 9v5"/>',
-    "unplug": '<path d="m8 3 3 3m5-3 3 3M5 8l3-3 8 8-3 3a4 4 0 0 1-5.7 0l-2.3-2.3a4 4 0 0 1 0-5.7ZM10 17l-4 4m13-7 2 2m-3 2 2 2"/>',
+    "unplug": ('<g transform="rotate(-45 12 12)"><path d="M1 12h1M8 7H5a3 3 0 0 0-3 3v4a3 3 0 0 0 3 3h3V7Z'
+               'm0 2h3m-3 6h3M15 7h3a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3h-3V7Z'
+               'm6 5h2"/></g>'),
     "plus": '<path d="M12 5v14M5 12h14"/>',
     "minus": '<path d="M5 12h14"/>',
     "x": '<path d="m6 6 12 12M18 6 6 18"/>',
