@@ -1,3 +1,6 @@
+# Modified for leon-2050/ComTool on 2026-10-13.
+# Derived from https://github.com/Neutree/COMTool; original copyright retained.
+# Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING.
 import sys,os
 
 if sys.version_info < (3, 7):
@@ -33,6 +36,8 @@ try:
     from plugins import builtinPlugins
     from pluginItems import PluginItem
     from widgets import TitleBar, CustomTitleBarWindowMixin, EventFilter, ButtonCombbox, HelpWidget
+    from workbench_shell import WorkspaceShell
+    from session_tabs import SessionTabBar
 except ImportError:
     from COMTool import helpAbout,autoUpdate, utils_ui
     from COMTool.Combobox import ComboBox
@@ -42,13 +47,14 @@ except ImportError:
     from COMTool.plugins import builtinPlugins
     from COMTool.pluginItems import PluginItem
     from .widgets import TitleBar, CustomTitleBarWindowMixin, EventFilter, ButtonCombbox, HelpWidget
+    from .workbench_shell import WorkspaceShell
+    from .session_tabs import SessionTabBar
 
-from PyQt5.QtCore import pyqtSignal, Qt, QRect, QMargins, QCoreApplication
+from PyQt5.QtCore import pyqtSignal, Qt, QRect, QMargins, QCoreApplication, QTimer
 from PyQt5.QtWidgets import (QApplication, QWidget,QPushButton,QMessageBox,QDesktopWidget,QMainWindow,
                              QVBoxLayout,QHBoxLayout,QGridLayout,QTextEdit,QLabel,QRadioButton,QCheckBox,
-                             QLineEdit,QGroupBox,QSplitter,QFileDialog, QScrollArea, QTabWidget, QMenu, QSplashScreen)
+                             QLineEdit,QGroupBox,QSplitter,QFileDialog, QScrollArea, QTabWidget, QMenu)
 from PyQt5.QtGui import QIcon,QFont,QTextCursor,QPixmap,QColor, QCloseEvent
-import qtawesome as qta # https://github.com/spyder-ide/qtawesome
 import threading
 import time
 from datetime import datetime
@@ -58,7 +64,7 @@ if sys.platform == "win32":
 
 g_all_windows = []
 
-class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
+class MainWindow(WorkspaceShell, CustomTitleBarWindowMixin, QMainWindow):
     hintSignal = pyqtSignal(str, str, str) # type(error, warning, info), title, msg
     # statusBarSignal = pyqtSignal(str, str)
     updateSignal = pyqtSignal(object)
@@ -85,6 +91,8 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
         self.loadPluginItems()
         log.i("load plugin items complete")
         self.initEvent()
+        self.syncWorkspace()
+        self.show()
 
     def initVar(self):
         self.loadPluginStr = _("Load plugin from file")
@@ -116,7 +124,7 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
                     if name.lower().startswith("comtool_plugin_") and not name.endswith("dist-info"):
                         log.i(f"find plugin package <{name}>")
                         pluginClass = __import__(name).Plugin
-                        print(pluginClass, self.pluginClasses)
+                        log.d(pluginClass, self.pluginClasses)
                         if not pluginClass in self.pluginClasses:
                             self.addPluginInfo(pluginClass)
                             self.pluginClasses.append(pluginClass)
@@ -148,9 +156,10 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
                     except Exception: # for no number tailed name
                         item["name"] = pluginClass.name
                     self.addItem(pluginClass, nameSaved=item["name"], setCurrent=setCurr, connsConfigs = item["config"]["conns"], pluginConfig=item["config"]["plugin"])
-        else:  # load builtin plugins
-            for id, pluginClass in builtinPlugins.items(): 
-                self.addItem(pluginClass)
+        else:
+            # Start with the common receive/send session; other tools are opened
+            # from the session menu and load their dependencies on first use.
+            self.addItem(builtinPlugins["dbg"], setCurrent=True)
 
     def addItem(self, pluginClass, nameSaved = None, setCurrent = False, connsConfigs=None, pluginConfig=None):
         '''
@@ -195,6 +204,23 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
                         self.onConnChnaged)
         self.tabAddItem(item)
         self.items.append(item)
+        if item.isAddConn:
+            for conn, connWidget in zip(item.conns, item.connWidgets):
+                observed = set()
+                for field in conn.widgetConfMap.values():
+                    widgets = field if isinstance(field, (list, tuple)) else [field]
+                    for control in widgets:
+                        signal = (getattr(control, "currentTextChanged", None)
+                                  or getattr(control, "textChanged", None)
+                                  or getattr(control, "clicked", None))
+                        if signal is not None:
+                            signal.connect(lambda *args: self.syncWorkspace())
+                            observed.add(control)
+                # Some connection maps include only one member of a radio group.
+                for control in connWidget.findChildren(QRadioButton):
+                    if control not in observed:
+                        control.clicked.connect(lambda *args: self.syncWorkspace())
+        self.syncWorkspace()
         if setCurrent:
             self.tabWidget.setCurrentWidget(item.widget)
         if not nameSaved:
@@ -209,6 +235,7 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
         return item
 
     def tabAddItem(self, item):
+        self.adoptItemPanels(item)
         self.tabWidget.addTab(item.widget, item.name)
         self.tabWidget.setTabToolTip(self.tabWidget.count() - 1, item.name + _(", Double click to detach as a window"))
 
@@ -221,11 +248,13 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
                         break
                 item.widget.setWindowTitle(item.name + " - {}".format(_("Connected" if status == ConnectionStatus.CONNECTED else _("Connection lose") if status == ConnectionStatus.LOSE else _("Disconnected"))))
 
+        self.syncWorkspace()
+
     def setTabIcon(self, status:ConnectionStatus, i:int):
         if status == ConnectionStatus.CONNECTED:
-            self.tabWidget.setTabIcon(i, qta.icon("fa.circle", color="#4caf50"))
+            self.tabWidget.setTabIcon(i, utils_ui.makeIcon("dot", color="#10b981"))
         elif status == ConnectionStatus.LOSE:
-            self.tabWidget.setTabIcon(i, qta.icon("fa.circle", color="orange"))
+            self.tabWidget.setTabIcon(i, utils_ui.makeIcon("dot", color="#f59e0b"))
         else:
             self.tabWidget.setTabIcon(i, QIcon())
 
@@ -240,7 +269,7 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
         name = os.path.splitext(os.path.basename(path))[0]
         sys.path.insert(0, dir)
         try:
-            print("import")
+            log.d("Import plugin")
             pluginClass = __import__(name).Plugin
         except Exception as e:
             import traceback
@@ -308,6 +337,7 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
         utils_ui.setSkin(self.config["skin"])
         # menu layout
         self.settingsButton = QPushButton()
+        self.settingsButton.setToolTip(_("Show / hide connection settings"))
         self.skinButton = ButtonCombbox(icon=None, btnClass="menuItem", btnId="menuItem2")
         self.languageCombobox = ButtonCombbox(icon=None, btnClass="menuItem", btnId="menuItemLang")
         self.languages = i18n.get_languages()
@@ -317,6 +347,10 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
             self.skinButton.addItem(_(skin_name))
         self.aboutButton = QPushButton()
         self.functionalButton = QPushButton()
+        self.functionalButton.setToolTip(_("Show / hide tools"))
+        self.skinButton.setToolTip(_("Appearance"))
+        self.languageCombobox.setToolTip(_("Language"))
+        self.aboutButton.setToolTip(_("Help"))
         self.encodingCombobox = ComboBox()
         self.supportedEncoding = parameters.encodings
         for encoding in self.supportedEncoding:
@@ -327,8 +361,14 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
         self.settingsButton.setObjectName("menuItem1")
         self.aboutButton.setObjectName("menuItem3")
         self.functionalButton.setObjectName("menuItem4")
+        utils_ui.setButtonIcon(self.settingsButton, "mdi.tune")
+        utils_ui.setButtonIcon(self.functionalButton, "mdi.dots-horizontal")
+        utils_ui.setButtonIcon(self.skinButton.button, "mdi.palette-outline", "titleIconColor")
+        utils_ui.setButtonIcon(self.languageCombobox.button, "fa.language", "titleIconColor")
+        utils_ui.setButtonIcon(self.aboutButton, "fa.question-circle-o", "titleIconColor")
         # plugins slector
         self.pluginsSelector = ButtonCombbox(icon="fa.plus", btnClass="smallBtn2")
+        self.pluginsSelector.setToolTip(_("Add plugin tab"))
         self.pluginsSelector.addItem(self.loadPluginStr)
         self.pluginsSelector.activated.connect(self.onPluginSelectorChanged)
 
@@ -336,8 +376,9 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
         title = parameters.appName+" v"+version.__version__
         iconPath = self.DataPath+"/"+parameters.appIcon
         log.i("icon path: " + iconPath)
-        self.titleBar = TitleBar(self, icon=iconPath, title=title, brothers=[], widgets=[[self.skinButton, self.languageCombobox, self.aboutButton], []])
-        CustomTitleBarWindowMixin.__init__(self, titleBar=self.titleBar, init = True)
+        self.titleBar = TitleBar(self, icon="brand", title=title, height=34, brothers=[], widgets=[[], []])
+        CustomTitleBarWindowMixin.__init__(self, titleBar=self.titleBar, init=True, icon=iconPath)
+        self.setWindowTitle(title)
 
         # root layout
         self.frameWidget = QWidget()
@@ -346,42 +387,33 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
         self.setCentralWidget(self.frameWidget)
         # tab widgets
         self.tabWidget = QTabWidget()
+        self.tabWidget.setTabBar(SessionTabBar(self.tabWidget))
+        self.tabWidget.setDocumentMode(True)
+        self.tabWidget.tabBar().setDrawBase(False)
         self.tabWidget.setTabsClosable(True)
-        # tab left menu
-        tabConerWidget = QWidget()
-        tabConerLayout = QHBoxLayout()
-        tabConerLayout.setSpacing(0)
-        tabConerLayout.setContentsMargins(0, 0, 0, 0)
-        tabConerWidget.setLayout(tabConerLayout)
-        tabConerLayout.addWidget(self.settingsButton)
-        # tab right menu
-        tabConerWidgetRight = QWidget()
-        tabConerLayoutRight = QHBoxLayout()
-        tabConerLayoutRight.setSpacing(0)
-        tabConerLayoutRight.setContentsMargins(0, 0, 0, 0)
-        tabConerWidgetRight.setLayout(tabConerLayoutRight)
-        tabConerLayoutRight.addWidget(self.pluginsSelector)
-        tabConerLayoutRight.addWidget(self.encodingCombobox)
-        tabConerLayoutRight.addWidget(self.functionalButton)
-        self.tabWidget.setCornerWidget(tabConerWidget, Qt.TopLeftCorner)
-        self.tabWidget.setCornerWidget(tabConerWidgetRight, Qt.TopRightCorner)
         self.contentLayout = QVBoxLayout()
         self.contentWidget.setLayout(self.contentLayout)
-        self.contentLayout.setContentsMargins(10, 0, 10, 10)
-        self.contentLayout.addWidget(self.tabWidget)
+        self.buildWorkspace()
 
         if sys.platform == 'darwin':
             self.macOsAddDockMenu()
 
-        self.resize(850, 500)
+        screen = self.app.primaryScreen().availableGeometry()
+        self.resize(min(1280, screen.width()), min(840, screen.height()))
         self.MoveToCenter()
-        self.show()
 
     def add_new_window(self):
         import copy
         mainWindow = MainWindow(self.app, self.eventFilter, copy.deepcopy(self.config))
         self.eventFilter.listenWindow(mainWindow)
         g_all_windows.append(mainWindow)
+
+    def resizeEvent(self, event):
+        QMainWindow.resizeEvent(self, event)
+        if (hasattr(self, "inspectorDrawer") and self.inspectorDrawer.isVisible()
+                and self.width() < 1150 and self.sessionSidebar.isVisible()):
+            self._drawerRestoreSidebar = True
+            self.sessionSidebar.hide()
 
     def macOsAddDockMenu(self):
         self.dockMenu = QMenu(self)
@@ -452,8 +484,11 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
         if item:
             self.config["currItem"] = item.name
             item.plugin.onActive()
+        self.syncWorkspace()
 
     def closeTab(self, idx):
+        if idx < 0 or idx >= self.tabWidget.count():
+            return
         # only one, ignore
         if self.tabWidget.count() == 1:
             return
@@ -469,9 +504,19 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
                 break
         item.onDel()
         self.items.remove(item)
+        self.sidebarStack.removeWidget(item.settingWidget)
+        self.toolsStack.removeWidget(item.functionalWidget)
+        item.settingWidget.deleteLater()
+        item.functionalWidget.deleteLater()
+        self.syncWorkspace()
 
     def onTabDoubleClicked(self, idx):
-        item = self.getCurrentItem()
+        if idx < 0:
+            return
+        item = next((it for it in self.items if it.widget == self.tabWidget.widget(idx)), None)
+        if not item:
+            return
+        self.releaseItemPanels(item)
         self.tabWidget.removeTab(idx)
         parent = item.widget.parent()
         item.widget.setWindowFlag(Qt.Window) # this method is not stable in QT, do not use it
@@ -479,12 +524,14 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
         item.widget.setWindowTitle(item.name)
         item.widget.closeEvent = lambda event: self.onPluginWindowClose(item, parent)
         item.widget.show()
+        self.syncWorkspace()
 
     def onPluginWindowClose(self, item, parent):
         self.recoverTab(item, parent)
 
     def recoverTab(self, item, parent):
         def add(i):
+            self.adoptItemPanels(item)
             self.tabWidget.insertTab(i, item.widget, item.name)
             self.tabWidget.setCurrentIndex(i)
             item.widget.setWindowFlag(Qt.Window, False)
@@ -504,6 +551,7 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
                 insertIdx = i
                 break
         add(insertIdx)
+        self.syncWorkspace()
 
 
     def updateStyle(self, widget):
@@ -554,7 +602,7 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
         if self.closeTimerId:
             event.accept()
             return
-        print("----- close event")
+        log.d("Close event")
         # reply = QMessageBox.question(self, 'Sure To Quit?',
         #                              "Are you sure to quit?", QMessageBox.Yes |
         #                              QMessageBox.No, QMessageBox.No)
@@ -584,7 +632,7 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
     def saveConfig(self):
         # print("save config:", self.config)
         self.config.save(parameters.configFilePath)
-        print("save config compelte")
+        log.d("Save config complete")
 
     def uiLoadConfigs(self):
         # language
@@ -605,12 +653,14 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
     def keyPressEvent(self, event):
         CustomTitleBarWindowMixin.keyPressEvent(self, event)
         item = self.getCurrentItem()
-        item.onKeyPressEvent(event)
+        if item:
+            item.onKeyPressEvent(event)
 
     def keyReleaseEvent(self,event):
         CustomTitleBarWindowMixin.keyReleaseEvent(self, event)
         item = self.getCurrentItem()
-        item.onKeyReleaseEvent(event)
+        if item:
+            item.onKeyReleaseEvent(event)
 
     def getCurrentItem(self, idx = False):
         widget = self.tabWidget.currentWidget()
@@ -621,46 +671,24 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
                 return item
 
     def toggleSettings(self):
-        widget = self.getCurrentItem().settingWidget
-        if widget.isVisible():
-            self.hideSettings()
-        else:
-            self.showSettings()
+        self.toggleInspector(0)
 
     def showSettings(self):
-        widget = self.getCurrentItem().settingWidget
-        widget.show()
-        self.settingsButton.setStyleSheet(
-            parameters.strStyleShowHideButtonLeft.replace("$DataPath",self.DataPath))
+        self.openInspector(0)
 
     def hideSettings(self):
-        widget = self.getCurrentItem().settingWidget
-        widget.hide()
-        self.settingsButton.setStyleSheet(
-            parameters.strStyleShowHideButtonRight.replace("$DataPath", self.DataPath))
+        if self.drawerPages.currentIndex() == 0:
+            self.closeInspector()
 
     def toggleFunctional(self):
-        widget = self.getCurrentItem().functionalWidget
-        if widget is None:
-            return
-        if widget.isVisible():
-            self.hideFunctional()
-        else:
-            self.showFunctional()
+        self.toggleInspector(1)
 
     def showFunctional(self):
-        widget = self.getCurrentItem().functionalWidget
-        if not widget is None:
-            widget.show()
-        self.functionalButton.setStyleSheet(
-            parameters.strStyleShowHideButtonRight.replace("$DataPath",self.DataPath))
+        self.openInspector(1)
 
     def hideFunctional(self):
-        widget = self.getCurrentItem().functionalWidget
-        if not widget is None:
-            widget.hide()
-        self.functionalButton.setStyleSheet(
-            parameters.strStyleShowHideButtonLeft.replace("$DataPath", self.DataPath))
+        if self.drawerPages.currentIndex() == 1:
+            self.closeInspector()
 
     def skinChange(self):
         idx = self.skinButton.currentIndex()
@@ -669,6 +697,8 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
         self.app.setStyleSheet(file.read().replace("$DataPath", self.DataPath))
         utils_ui.setSkin(skin)
         self.config["skin"] = skin
+        self.refreshWorkspaceIcons()
+        self.syncWorkspace()
 
     def showAbout(self):
         help = helpAbout.HelpInfo()
@@ -680,6 +710,7 @@ class MainWindow(CustomTitleBarWindowMixin, QMainWindow):
                 pluginsHelp[p.name] = p.help
         iconPath = self.DataPath+"/"+parameters.appIcon
         self.helpWindow = HelpWidget(pluginsHelp, icon = iconPath)
+        self.helpWindow.setWindowTitle(parameters.appName + " - " + _("Help"))
         self.helpWindow.closed.connect(self.helpWindowClosed)
         self.eventFilter.listenWindow(self.helpWindow)
 
@@ -723,32 +754,24 @@ def load_fonts(paths):
         fonts = QtGui.QFontDatabase.applicationFontFamilies(id)
         print("load fonts:", fonts)
 
-class Splash(QSplashScreen):
-    '''
-        show splash when window is loading
-    '''
-    def __init__(self, app) -> None:
-        super().__init__(QPixmap(os.path.join(parameters.assetsDir, "logo.png")))
-        self.app = app
-        self.exit = False
-        self.show()
-        t = threading.Thread(target=self._processEventsProcess)
-        t.setDaemon(True)
-        t.start()
-
-    def event(self, e):
-        if type(e) == QCloseEvent:
-            self.exit = True
-        return super().event(e)
-
-    def finish(self, w):
-        self.exit = True
-        return super().finish(w)
-
-    def _processEventsProcess(self):
-        while not self.exit:
-            self.app.processEvents()
-            time.sleep(0.001)
+def _report_startup_ready(window):
+    """Opt-in build verification; ordinary launches do not write a marker."""
+    probe_path = os.environ.get("COMTOOL_STARTUP_PROBE")
+    if not probe_path:
+        return
+    import json
+    try:
+        with open(probe_path, "w", encoding="utf-8") as file:
+            json.dump({"ready": window.isVisible(),
+                       "app_name": QApplication.applicationName(),
+                       "app_display_name": QApplication.applicationDisplayName(),
+                       "title_bar": window.titleBar.title.text(),
+                       "window_title": window.windowTitle(),
+                       "plugins": [item.plugin.id for item in window.items],
+                       "dpr": window.devicePixelRatioF(),
+                       "icon_loaded": not window.windowIcon().isNull()}, file)
+    except OSError as error:
+        log.e("Cannot write startup probe:", error)
 
 
 def main():
@@ -760,8 +783,16 @@ def main():
     ret = 1
     try:
         QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+        QCoreApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
         app = QApplication(sys.argv)
-        splash = Splash(app)
+        app.setApplicationName(parameters.appName)
+        app.setApplicationDisplayName(parameters.appName)
+        app.setStyle("Fusion")
+        app.setFont(QFont("Microsoft YaHei UI", 10))
+        app.setWindowIcon(QIcon(os.path.join(parameters.dataPath, parameters.appIcon)))
+        with open(parameters.dataPath+'/assets/qss/style-{}.qss'.format(programConfig["skin"]),
+                  "r", encoding="utf-8") as file:
+            app.setStyleSheet(file.read().replace("$DataPath", parameters.dataPath))
         eventFilter = EventFilter()
         mainWindow = MainWindow(app, eventFilter, programConfig)
         eventFilter.listenWindow(mainWindow)
@@ -770,28 +801,27 @@ def main():
         # path = os.path.join(mainWindow.DataPath, "assets", "fonts", "JosefinSans-Regular.ttf")
         # load_fonts([path])
         log.i("data path:"+mainWindow.DataPath)
-        file = open(mainWindow.DataPath+'/assets/qss/style-{}.qss'.format(mainWindow.config["skin"]),"r", encoding="utf-8")
-        qss = file.read().replace("$DataPath",mainWindow.DataPath)
-        app.setStyleSheet(qss)
-        t = threading.Thread(target=mainWindow.autoUpdateDetect)
-        t.setDaemon(True)
-        t.start()
-        splash.finish(mainWindow)
+        # Give the main window its first paint before background network work.
+        if os.environ.get("COMTOOL_STARTUP_PROBE"):
+            QTimer.singleShot(50, lambda: _report_startup_ready(mainWindow))
+        QTimer.singleShot(5000, lambda: threading.Thread(
+            target=mainWindow.autoUpdateDetect, daemon=True).start())
         ret = app.exec_()
         if mainWindow.needRestart:
             ret = None
         else:
             app.removeEventFilter(eventFilter)
-            print("-- no need to restart, now exit")
+            log.d("Program exit")
     except Exception as e:
         import traceback
         exc = traceback.format_exc()
+        log.e(exc)
         show_error(_("Error"), exc)
     return ret
 
 def show_error(title, msg):
     print("error:", msg)
-    app = QApplication(sys.argv)
+    app = QApplication.instance() or QApplication(sys.argv)
     window = QMainWindow()
     QMessageBox.information(window, title, msg)
 

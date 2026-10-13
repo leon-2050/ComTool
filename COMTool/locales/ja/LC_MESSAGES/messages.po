@@ -1,3 +1,6 @@
+# Modified for leon-2050/ComTool on 2026-10-13.
+# Derived from https://github.com/Neutree/COMTool; original copyright retained.
+# Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING.
 # Japanese translations for PROJECT.
 # Copyright (C) 2021 ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
@@ -1078,3 +1081,313 @@ msgstr ""
 #~ msgid "Sendding File"
 #~ msgstr "ファイルの送信"
 
+
+
+#. Desktop interface
+msgid "Receive"
+msgstr "受信"
+
+
+#. Desktop interface
+msgid "Send history"
+msgstr "送信履歴"
+
+
+#. Desktop interface
+msgid "Waiting for incoming data…"
+msgstr "データの受信を待っています…"
+
+
+#. Desktop interface
+msgid "Enter data to send · Ctrl+Enter"
+msgstr "送信データを入力 · Ctrl+Enter"
+
+
+#. Desktop interface
+msgid "Show / hide connection settings"
+msgstr "接続設定を表示 / 非表示"
+
+
+#. Desktop interface
+msgid "Show / hide tools"
+msgstr "ツールを表示 / 非表示"
+
+
+#. Desktop interface
+msgid "Appearance"
+msgstr "外観"
+
+
+#. Desktop interface
+msgid "Language"
+msgstr "言語"
+
+
+#. Desktop interface
+msgid "Add plugin tab"
+msgstr "プラグインタブを追加"
+
+
+#. Desktop interface
+msgid "Sessions"
+msgstr "セッション"
+
+
+#. Desktop interface
+msgid "Serial session"
+msgstr "シリアルセッション"
+
+
+#. Desktop interface
+msgid "Network session"
+msgstr "ネットワークセッション"
+
+
+#. Desktop interface
+msgid "SSH terminal"
+msgstr "SSH 端末"
+
+
+#. Desktop interface
+msgid "Close session"
+msgstr "セッションを閉じる"
+
+
+#. Desktop interface
+msgid "Exit"
+msgstr "終了"
+
+
+#. Desktop interface
+msgid "View"
+msgstr "表示"
+
+
+#. Desktop interface
+msgid "Session sidebar"
+msgstr "セッションサイドバー"
+
+
+#. Desktop interface
+msgid "Connection settings"
+msgstr "接続設定"
+
+
+#. Desktop interface
+msgid "Tools"
+msgstr "ツール"
+
+
+#. Desktop interface
+msgid "Plugins"
+msgstr "プラグイン"
+
+
+#. Desktop interface
+msgid "Settings"
+msgstr "設定"
+
+
+#. Desktop interface
+msgid "New session"
+msgstr "新規セッション"
+
+
+#. Desktop interface
+msgid "Network"
+msgstr "ネットワーク"
+
+
+#. Desktop interface
+msgid "Terminal"
+msgstr "端末"
+
+
+#. Desktop interface
+msgid "Find a session…"
+msgstr "セッションを検索…"
+
+
+#. Desktop interface
+msgid "Workspace sessions"
+msgstr "ワークスペース"
+
+
+#. Studio interface
+msgid "Debug workspace"
+msgstr "デバッグワークスペース"
+
+
+#. Studio interface
+msgid "Ready to connect"
+msgstr "接続の準備完了"
+
+
+#. Studio interface
+msgid "Workspace menu"
+msgstr "ワークスペースメニュー"
+
+
+#. Studio interface
+msgid "No port selected"
+msgstr "ポート未選択"
+
+
+#. Studio interface
+msgid "Receive monitor"
+msgstr "受信モニター"
+
+
+#. Studio interface
+msgid "Compose data"
+msgstr "送信データ"
+
+
+#. Studio interface
+msgid "Copy received data"
+msgstr "受信データをコピー"
+
+
+#. Studio interface
+msgid "Copy"
+msgstr "コピー"
+
+
+#. Studio interface
+msgid "Options"
+msgstr "オプション"
+
+
+#. Studio interface
+msgid "Inspector"
+msgstr "設定"
+
+
+#. Studio interface
+msgid "Close inspector"
+msgstr "パネルを閉じる"
+
+
+#. Studio interface
+msgid "Text encoding"
+msgstr "文字エンコーディング"
+
+
+#. Studio interface
+msgid "Open sessions"
+msgstr "開いているセッション"
+
+
+#. Studio interface
+msgid "open sessions"
+msgstr "セッション"
+
+
+#. Studio interface
+msgid "Session tools"
+msgstr "セッションツール"
+
+
+#. Studio interface
+msgid "Select a port in connection settings"
+msgstr "接続設定でポートを選択してください"
+
+
+#. Studio interface
+msgid "No received data yet"
+msgstr "受信データはまだありません"
+
+
+#. Studio interface
+msgid "Connect a device to see incoming data here"
+msgstr "接続後、受信データがここに表示されます"
+
+
+#. Studio interface
+msgid "Connected. Incoming data will appear here"
+msgstr "接続済み。データの受信を待っています"
+
+
+#. Studio interface
+msgid "Connecting to your device…"
+msgstr "デバイスに接続しています…"
+
+
+#. Studio interface
+msgid "Connection lost. Reconnect to continue receiving"
+msgstr "接続が切れました。再接続してください"
+
+
+#. Studio interface
+msgid "Received data"
+msgstr "受信データ"
+
+
+#. Studio interface
+msgid "Data to send"
+msgstr "送信するデータ"
+
+
+#. Studio interface
+msgid "Live incoming data"
+msgstr "リアルタイム受信"
+
+
+#. Studio interface
+msgid "Receive display format"
+msgstr "受信表示形式"
+
+
+#. Studio interface
+msgid "Prepare your next message"
+msgstr "次のメッセージを作成"
+
+
+#. Studio interface
+msgid "Send data format"
+msgstr "送信形式"
+
+
+#. Studio interface
+msgid "Connect a device to enable sending"
+msgstr "接続すると送信できます"
+
+
+#. Studio interface
+msgid "Text"
+msgstr "テキスト"
+
+
+#. Studio interface
+msgid "Ctrl+Enter to send"
+msgstr "Ctrl+Enter で送信"
+
+
+#. Studio interface
+msgid "No active session"
+msgstr "アクティブなセッションはありません"
+
+
+#. Studio interface
+msgid "Select or create a session"
+msgstr "セッションを選択または作成してください"
+
+
+#. Studio interface
+msgid "Enable logging"
+msgstr "ログを記録"
+
+
+#. Studio interface
+msgid "Server"
+msgstr "サーバー"
+
+
+#. Terminal display options
+msgid "Keyword highlighting"
+msgstr "キーワードの強調表示"
+
+
+#. Terminal display options
+msgid "Highlight addresses, command options and status keywords without overriding command colors."
+msgstr "コマンド本来の色を保持し、アドレス、オプション、状態キーワードを強調表示します。"

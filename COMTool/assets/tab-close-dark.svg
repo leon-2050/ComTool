@@ -1,0 +1,4 @@
+<!-- Modified for leon-2050/ComTool on 2026-10-13.
+     Derived from https://github.com/Neutree/COMTool; original copyright retained.
+     Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="#9baac0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>

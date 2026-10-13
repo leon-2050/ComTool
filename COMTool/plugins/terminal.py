@@ -1,14 +1,17 @@
+# Modified for leon-2050/ComTool on 2026-10-13.
+# Derived from https://github.com/Neutree/COMTool; original copyright retained.
+# Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING.
 '''
     @author neucrack
     @license LGPL-3.0
     @update 2022-03-15 create
 '''
 from ast import arg
-from PyQt5.QtCore import QObject, Qt, QRect
+from PyQt5.QtCore import QObject, Qt, QRect, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import (QApplication, QWidget,QPushButton,QMessageBox,QDesktopWidget,QMainWindow,
                              QVBoxLayout,QHBoxLayout,QGridLayout,QTextEdit,QLabel,QRadioButton,QCheckBox,
                              QLineEdit,QGroupBox,QSplitter,QFileDialog, QScrollArea, QScrollBar)
-from PyQt5.QtGui import (QColor, QPixmap, QFontMetrics, QFont, QBrush, QPen, QPainter,
+from PyQt5.QtGui import (QColor, QPixmap, QFontMetrics, QFont, QFontDatabase, QBrush, QPen, QPainter,
                         QKeyEvent, QWheelEvent)
 
 try:
@@ -29,6 +32,9 @@ from wcwidth import wcswidth
 import threading
 import time
 import pyperclip
+import math
+import re
+from .terminal_colors import highlight_keywords
 
 class Terminal_Backend:
     def __init__(self) -> None:
@@ -44,6 +50,8 @@ class Terminal_Backend:
         self.screen.history = self.screen.history._replace(ratio = 1.0/height)
 
 class Terminal_Frontend(QWidget):
+    repaintRequested = pyqtSignal()
+
     def __init__(self, send_func, resizeConnFunc, isConnectedFunc) -> None:
         super().__init__()
         self.send = send_func
@@ -63,11 +71,20 @@ class Terminal_Frontend(QWidget):
                 'yellow': QColor("#ffeb3b"),
                 'magenta': QColor("#e85aad"),
                 'white': QColor("#cacaca"),
+                'brightblack': QColor("#8a94a6"),
+                'brightred': QColor("#ff6b6b"),
+                'brightgreen': QColor("#83d68a"),
+                'brightbrown': QColor("#f6d06f"),
+                'brightyellow': QColor("#f6d06f"),
+                'brightblue': QColor("#6daaff"),
+                'brightmagenta': QColor("#ef87d7"),
+                'brightcyan': QColor("#74dfe8"),
+                'brightwhite': QColor("#ffffff"),
                 "selected": QColor(255, 255, 255, 80),
             }
         }
         self.keymap = {
-            # for term type string equal to linux
+            # Normal cursor-key mode shared by Linux and xterm terminals.
             Qt.Key_Backspace: b'\x7F', # use DEL, not 0x08(^H, Backspace)
             Qt.Key_Escape:    b'\x1B',
             Qt.Key_AsciiTilde: b'\x7E',
@@ -103,25 +120,29 @@ class Terminal_Frontend(QWidget):
         self.backend = Terminal_Backend()
         self.setCursor(Qt.IBeamCursor)
         self.setFocusPolicy(Qt.StrongFocus)
-        self.font_name = 'Consolas,Bitstream Vera Sans Mono,Courier New,monospace, Microsoft Yahei Mono, Microsoft YaHei'
+        families = set(QFontDatabase().families())
+        self.font_name = next((name for name in ("Consolas", "Cascadia Mono", "DejaVu Sans Mono", "Liberation Mono", "Courier New")
+                               if name in families), QFontDatabase.systemFont(QFontDatabase.FixedFont).family())
         self.font_p_size = 15
         self.font = self.new_font()
-        self.fm = QFontMetrics(self.font)
+        self.fm = QFontMetrics(self.font, self)
         self._char_height = self.fm.height()
         self._char_width = self.fm.width("W")
         self._columns, self._rows = self._pixel2pos(self.width(), self.height())
         self.cursor_x = 0
         self.cursor_y = 0
-        self._selection = None
+        # Selection is a display overlay, so it never destroys ANSI backgrounds.
+        self._selection = {}
+        self.keywordHighlighting = True
+        self._highlighting_active = None
         # cache
         self.pens = {}
         self.brushes = {}
         self.default_brush = QBrush(self.theme["bg"])
         self.default_pen = QPen(self.theme["color"])
-        # pixmap, all operation on this pixmap in receive thread,
-        #         then invoke UI thread to paint this pixmap on main widget
-        self.pixmap = QPixmap(self.width(), self.height())
-        self.pixmap.fill(self.theme["bg"])
+        # The cache has physical pixels, while text/PTY/selection use logical coordinates.
+        # QPixmap creation and drawing stay in the GUI thread.
+        self.pixmap = self._new_pixmap()
         # scroll
         self.scrollBar = None
         self.scrollEventSet = False
@@ -129,6 +150,7 @@ class Terminal_Frontend(QWidget):
         # timer for check change
         self.startTimer(100)
         self.updatePixmapLock = threading.Lock()
+        self.repaintRequested.connect(self._refresh_from_backend)
         # selection
         self.selectionStart = None
         self.lastSelection = None
@@ -143,32 +165,76 @@ class Terminal_Frontend(QWidget):
         font = QFont()
         font.setFamily(self.font_name)
         font.setPixelSize(self.font_p_size)
+        font.setStyleHint(QFont.Monospace)
+        font.setFixedPitch(True)
+        font.setStyleStrategy(QFont.PreferAntialias)
         return font
 
+    def _new_pixmap(self):
+        ratio = self.devicePixelRatioF()
+        pixmap = QPixmap(max(1, math.ceil(self.width() * ratio)),
+                         max(1, math.ceil(self.height() * ratio)))
+        pixmap.setDevicePixelRatio(ratio)
+        pixmap.fill(self.theme["bg"])
+        return pixmap
+
+    def _ensure_pixmap(self):
+        ratio = self.devicePixelRatioF()
+        if (abs(self.pixmap.devicePixelRatioF() - ratio) > 1e-6
+                or self.pixmap.width() != max(1, math.ceil(self.width() * ratio))
+                or self.pixmap.height() != max(1, math.ceil(self.height() * ratio))):
+            self.pixmap = self._new_pixmap()
+            self.paint_full_pixmap()
+
+    @pyqtSlot()
+    def _refresh_from_backend(self):
+        with self.updatePixmapLock:
+            self._ensure_pixmap()
+            self.updatePixmap()
+
     def get_pen(self, color_name="white", keyword = None):
-        pen = self.pens.get(color_name)
+        key = (color_name, keyword)
+        pen = self.pens.get(key)
         if not pen:
             if keyword:
                 color = self.theme.get(keyword)
             else:
-                color = self.theme["colors"].get(color_name)
-            if not color:
-                pen = self.default_pen
-            else:
-                pen = QPen(color)
-            self.pens[color_name] = pen
+                color = self.resolve_color(color_name)
+            pen = QPen(color) if color is not None else self.default_pen
+            self.pens[key] = pen
         return pen
+
+    def resolve_color(self, name, background=False, bold=False):
+        # pyte's AIXTERM background table spells SGR 105 this way.
+        if name == "bfightmagenta":
+            name = "brightmagenta"
+        if name == "default":
+            return self.theme["bg" if background else "color"]
+        if bold and not background and name in ("black", "red", "green", "brown", "yellow", "blue", "magenta", "cyan", "white"):
+            name = "bright" + name
+        color = self.theme["colors"].get(name)
+        if color is not None:
+            return color
+        # pyte returns 256-colour and RGB SGR values as six hex digits.
+        if isinstance(name, str) and re.fullmatch(r"#?[0-9a-fA-F]{6}", name):
+            return QColor(name if name.startswith("#") else "#" + name)
+        return self.theme["bg" if background else "color"]
 
     def get_brush(self, color_name):
         brush = self.brushes.get(color_name)
         if not brush:
-            color = self.theme["colors"].get(color_name)
-            if not color:
-                brush = self.default_brush
-            else:
-                brush = QBrush(color)
+            brush = QBrush(self.resolve_color(color_name, background=True))
             self.brushes[color_name] = brush
         return brush
+
+    def setKeywordHighlighting(self, enabled):
+        self.keywordHighlighting = bool(enabled)
+        with self.updatePixmapLock:
+            self.paint_full_pixmap()
+        self.update()
+
+    def _keywords_enabled(self, screen):
+        return self.keywordHighlighting and not any((mode << 5) in screen.mode for mode in (47, 1047, 1049))
 
     def _pixel2pos(self, x, y):
         col = int(x / self._char_width)
@@ -182,17 +248,26 @@ class Terminal_Frontend(QWidget):
 
     def paint_full_pixmap(self):
         painter = QPainter(self.pixmap)
-        screen = self.backend.screen
-        self.paint_full_text(painter, screen)
-        self.paint_cursor(painter, screen)
+        try:
+            painter.setRenderHint(QPainter.TextAntialiasing, True)
+            screen = self.backend.screen
+            self.paint_full_text(painter, screen)
+            self.paint_cursor(painter, screen)
+        finally:
+            painter.end()
 
     def paint_part_pixmap(self):
         painter = QPainter(self.pixmap)
-        screen = self.backend.screen
-        self.paint_dirty_text(painter, screen)
-        self.paint_cursor(painter, screen)
+        try:
+            painter.setRenderHint(QPainter.TextAntialiasing, True)
+            screen = self.backend.screen
+            self.paint_dirty_text(painter, screen)
+            self.paint_cursor(painter, screen)
+        finally:
+            painter.end()
 
     def paint_full_text(self, painter, screen):
+        self._highlighting_active = self._keywords_enabled(screen)
         painter.setFont(self.font)
         for line_num in range(self._rows):
             self.paint_line_text(painter, screen, line_num, clear=True)
@@ -215,36 +290,61 @@ class Terminal_Frontend(QWidget):
 
         line = screen.buffer[line_num]
 
+        colours = ()
+        # Leave full-screen application colours and layout under application control.
+        if self._keywords_enabled(screen):
+            text = "".join(line[col].data for col in range(screen.columns))
+            colours = highlight_keywords(text)
+        offset = 0
         same_text = ""
-        text_width = 0
-        pre_char = None
+        start_col = 0
+        previous_style = None
         align = Qt.AlignTop | Qt.AlignLeft
 
         for col in range(screen.columns):
             char = line[col]
-            if pre_char and char.fg == pre_char.fg and char.bg == pre_char.bg:
+            fg = char.fg
+            if (char.data and fg == "default" and char.bg == "default" and not char.reverse
+                    and offset < len(colours) and colours[offset]):
+                fg = colours[offset]
+            style = (fg, char.bg, char.bold, char.italics, char.underscore,
+                     char.strikethrough, char.reverse, (id(line), col) in self._selection)
+            # Empty cells are the second column of a wide character, not new text.
+            if not char.data and previous_style is not None:
+                style = previous_style
+            offset += len(char.data)
+            if previous_style == style:
                 same_text += char.data
-                continue
             else:
-                if same_text:
-                    text_width = self.fm.width(same_text)
-                    self.draw_text(same_text, start_x, start_y, text_width, pre_char.fg, pre_char.bg, painter, align)
-
-                pre_char = char
+                if previous_style is not None:
+                    self.draw_text(same_text, start_col * self._char_width, start_y,
+                                   (col - start_col) * self._char_width, previous_style, painter, align)
+                previous_style = style
                 same_text = char.data
-                start_x = start_x + text_width
+                start_col = col
 
-        if same_text:
-            text_width = self.fm.width(same_text)
-            self.draw_text(same_text, start_x, start_y, text_width, pre_char.fg, pre_char.bg, painter, align)
+        if previous_style is not None:
+            self.draw_text(same_text, start_col * self._char_width, start_y,
+                           (screen.columns - start_col) * self._char_width, previous_style, painter, align)
 
-    def draw_text(self, text, start_x, start_y, text_width, fg, bg, painter, align):
+    def draw_text(self, text, start_x, start_y, text_width, style, painter, align):
+        fg, bg, bold, italics, underscore, strikethrough, reverse, selected = style
         rect = QRect(start_x, start_y, text_width, self._char_height)
-
-        if bg and bg != 'default':
-            painter.fillRect(rect, self.get_brush(bg))
-
-        painter.setPen(self.get_pen(fg))
+        foreground = self.resolve_color(fg, bold=bold)
+        background = self.resolve_color(bg, background=True)
+        if reverse:
+            foreground, background = background, foreground
+        if reverse or bg != "default":
+            painter.fillRect(rect, background)
+        if selected:
+            painter.fillRect(rect, self.theme["colors"]["selected"])
+        font = QFont(self.font)
+        font.setBold(bold)
+        font.setItalic(italics)
+        font.setUnderline(underscore)
+        font.setStrikeOut(strikethrough)
+        painter.setFont(font)
+        painter.setPen(foreground)
         painter.drawText(rect, align, text)
 
     def paint_cursor(self, painter, screen):
@@ -252,25 +352,8 @@ class Terminal_Frontend(QWidget):
         cursor = screen.cursor
         self.cursor_x = cursor.x
         self.cursor_y = cursor.y
-        char = ""
-        if self.cursor_y >= len(screen.display):
-            cursor_x_pixel_width = 0
-        else:
-            line = screen.display[self.cursor_y]
-            # to get actual text before cursor.x
-            x = self.cursor_x
-            while 1:
-                w = wcswidth(line[:x])
-                if w > self.cursor_x:
-                    x -= 1
-                elif w < self.cursor_x:
-                    x += 1
-                else:
-                    break
-            text = line[:x]
-            if x < len(line):
-                char = line[x]
-            cursor_x_pixel_width = self.fm.width(text)
+        char = screen.buffer[self.cursor_y][self.cursor_x].data if self.cursor_x < screen.columns else ""
+        cursor_x_pixel_width = self.cursor_x * self._char_width
         bcol = self.theme["cursor"]
         brush = QBrush(bcol)
 
@@ -280,6 +363,7 @@ class Terminal_Frontend(QWidget):
         painter.setBrush(brush)
         painter.drawRect(rect)
         if char:
+            painter.setFont(self.font)
             painter.setPen(self.get_pen(keyword="bg"))
             painter.drawText(rect, align, char)
 
@@ -324,12 +408,18 @@ class Terminal_Frontend(QWidget):
         '''
             paint pixmap to on widget
         '''
-        painter = QPainter(self)
-        painter.drawPixmap(0, 0, self.pixmap)
+        with self.updatePixmapLock:
+            self._ensure_pixmap()
+            painter = QPainter(self)
+            painter.drawPixmap(0, 0, self.pixmap)
+            painter.end()
         # set scrollbar
-        top = len(self.backend.screen.history.top)
-        bottom = len(self.backend.screen.history.bottom)
-        maxlen = self.backend.screen.history.size
+        if self.scrollBar is None:
+            return
+        with self.updatePixmapLock:
+            top = len(self.backend.screen.history.top)
+            bottom = len(self.backend.screen.history.bottom)
+            maxlen = self.backend.screen.history.size
         if top + bottom + self._rows > maxlen:
             barCount = maxlen - self._rows
             curr = maxlen - bottom - self._rows
@@ -351,21 +441,23 @@ class Terminal_Frontend(QWidget):
         '''
             scheduled check change
         '''
-        self.updatePixmapLock.acquire()
-        self.updatePixmap()
-        self.updatePixmapLock.release()
+        self._refresh_from_backend()
 
     def onReceived(self, data:bytes):
         '''
             in receive thread, not UI thread
             lock to make sure receive thread not change screen when check changes here
         '''
-        self.updatePixmapLock.acquire()
-        self.backend.feed(data)
-        self.updatePixmap()
-        self.updatePixmapLock.release()
+        with self.updatePixmapLock:
+            self.backend.feed(data)
+        self.repaintRequested.emit()
 
     def updatePixmap(self):
+        screen = self.backend.screen
+        active = self._keywords_enabled(screen)
+        if active != self._highlighting_active:
+            self._highlighting_active = active
+            screen.dirty.update(range(screen.lines))
         cursor = self.backend.screen.cursor
         # display changed or cursor changed
         if self.backend.screen.dirty or (self.cursor_x != cursor.x or self.cursor_y != cursor.y):
@@ -403,14 +495,15 @@ class Terminal_Frontend(QWidget):
 
     def resizeEvent(self, event):
         try:
-            self.updatePixmapLock.acquire()
-            self._columns, self._rows = self._pixel2pos(self.width(), self.height())
-            self.backend.resize(self._columns, self._rows)
+            if not hasattr(self, "updatePixmapLock"):
+                return
+            with self.updatePixmapLock:
+                columns, rows = self._pixel2pos(self.width(), self.height())
+                self._columns, self._rows = max(1, columns), max(1, rows)
+                self.backend.resize(self._columns, self._rows)
+                self.pixmap = self._new_pixmap()
+                self.paint_full_pixmap()
             self.resizeConn(self._columns, self._rows)
-            self.pixmap = QPixmap(self.width(), self.height())
-            self.pixmap.fill(self.theme["bg"])
-            self.paint_full_pixmap()
-            self.updatePixmapLock.release()
         except:
             import traceback
             traceback.print_exc()
@@ -454,47 +547,22 @@ class Terminal_Frontend(QWidget):
         content = self._get_selected_data(start, end)
         pyperclip.copy(content)
 
+    def _selection_lines(self, start, end):
+        for row in range(start[3], end[3] + 1):
+            first = start[2] if row == start[3] else 0
+            last = end[2] if row == end[3] else self._columns
+            line = self._get_line(row)
+            first, last = max(0, first), min(self._columns, last)
+            if first < last:
+                if first > 0 and not line[first].data:
+                    first -= 1
+                if last < self._columns and not line[last].data:
+                    last += 1
+            yield line, range(first, last)
+
     def _get_selected_data(self, start, end):
-        pixLen = 0
-        content = ""
-        if start[3] == end[3]: # same row
-            line = self._get_line(start[3])
-            for i in line:
-                pixLen += self.fm.width(line[i].data)
-                if pixLen > start[2] * self._char_width:
-                    content += line[i].data
-                if pixLen >= end[0]:
-                    break
-        else:
-            # select last line to end
-            line = self._get_line(start[3])
-            draw = False
-            for i in line:
-                if not draw:
-                    pixLen += self.fm.width(line[i].data)
-                    if pixLen > start[2] * self._char_width:
-                        draw = True
-                    else:
-                        continue
-                if draw:
-                    content += line[i].data
-            content += "\n"
-            # select middle lines(if have)
-            for r in range(start[3] + 1, end[3]):
-                line = self._get_line(r)
-                for i in line:
-                    content += line[i].data
-                content += "\n"
-            # select from the start of current line to the pos of pointer
-            line = self._get_line(end[3])
-            pixLen = 0
-            for i in line:
-                pixLen += self.fm.width(line[i].data)
-                if pixLen <= end[2] * self._char_width:
-                    content += line[i].data
-                if pixLen >= end[0]:
-                    break
-        return content
+        return "\n".join("".join(line[col].data for col in columns)
+                         for line, columns in self._selection_lines(start, end))
 
     def mousePressEvent(self, e):
         self.mouseButton = e.button()
@@ -595,43 +663,15 @@ class Terminal_Frontend(QWidget):
         return line
 
     def select(self, start, end, unselect = False):
-        bg = "default" if unselect else "selected"
-        pixLen = 0
-        if start[3] == end[3]: # same row
-            line = self._get_line(start[3])
-            for i in line:
-                pixLen += self.fm.width(line[i].data)
-                if pixLen > start[2] * self._char_width:
-                    line[i] = line[i]._replace(bg= bg)
-                if pixLen >= end[0]:
-                    break
-        else:
-            # select last line to end
-            line = self._get_line(start[3])
-            draw = False
-            for i in line:
-                if not draw:
-                    pixLen += self.fm.width(line[i].data)
-                    if pixLen > start[2] * self._char_width:
-                        draw = True
-                    else:
-                        continue
-                if draw:
-                    line[i] = line[i]._replace(bg=bg)
-            # select middle lines(if have)
-            for r in range(start[3] + 1, end[3]):
-                line = self._get_line(r)
-                for i in line:
-                    line[i] = line[i]._replace(bg=bg)
-            # select from the start of current line to the pos of pointer
-            line = self._get_line(end[3])
-            pixLen = 0
-            for i in line:
-                pixLen += self.fm.width(line[i].data)
-                if pixLen <= end[2] * self._char_width:
-                    line[i] = line[i]._replace(bg=bg)
-                if pixLen >= end[0]:
-                    break
+        for line, columns in self._selection_lines(start, end):
+            for col in columns:
+                key = (id(line), col)
+                if unselect:
+                    self._selection.pop(key, None)
+                else:
+                    # Retain the line so an old dictionary id cannot be reused.
+                    self._selection[key] = line
+
 
 
 class Scroll_Terminal(QWidget):
@@ -690,6 +730,7 @@ class Plugin(Plugin_Base):
         self.config = config
         default = {
             "version": 1,
+            "keywordHighlighting": True,
         }
         for k in default:
             if not k in self.config:
@@ -703,7 +744,23 @@ class Plugin(Plugin_Base):
 
     def onWidgetMain(self, parent):
         self.widget = Scroll_Terminal(self.send, self.resizeConnOutput, self.isConnected)
+        self.widget.terminal.setKeywordHighlighting(self.config["keywordHighlighting"])
         return self.widget
+
+    def onWidgetSettings(self, parent):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        self.highlightCheckBox = QCheckBox(_("Keyword highlighting"))
+        self.highlightCheckBox.setToolTip(_("Highlight addresses, command options and status keywords without overriding command colors."))
+        self.highlightCheckBox.setChecked(self.config["keywordHighlighting"])
+        self.highlightCheckBox.toggled.connect(self._highlightChanged)
+        layout.addWidget(self.highlightCheckBox)
+        return widget
+
+    def _highlightChanged(self, enabled):
+        self.config["keywordHighlighting"] = bool(enabled)
+        if hasattr(self, "widget"):
+            self.widget.terminal.setKeywordHighlighting(enabled)
 
     def resizeConnOutput(self, w, h):
         if self.isConnected:

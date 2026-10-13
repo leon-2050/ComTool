@@ -1,3 +1,6 @@
+# Modified for leon-2050/ComTool on 2026-10-13.
+# Derived from https://github.com/Neutree/COMTool; original copyright retained.
+# Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING.
 import shutil
 import sys, os
 from datetime import datetime
@@ -10,8 +13,8 @@ except ImportError:
     from COMTool.i18n import _, set_locale
     from COMTool.logger import Logger
 
-appName = "COMTool"
-appIcon = "assets/logo.png"
+appName = "ComTool"
+appIcon = "assets/comtool.ico"
 appLogo = "assets/logo.png"
 appLogo2 = "assets/logo2.png"
 dataPath = os.path.abspath(os.path.dirname(__file__)).replace("\\", "/") # replace \ to / for qss usage, qss only support /
@@ -44,14 +47,16 @@ if sys.platform.startswith('linux') or sys.platform.startswith('darwin') or sys.
     configFilePath = get_config_path(configFileName)
 elif sys.platform.startswith("win"):
     appdata = os.getenv("APPDATA") or os.path.expanduser("~\\AppData\\Roaming")
-    configFileDir = os.path.join(appdata, appName)
+    # The display name may change; keep existing profiles at their original path.
+    configFileDir = os.path.join(appdata, "COMTool")
     configFilePath = get_config_path(configFileName)
 else:
     configFileDir = os.path.abspath(os.getcwd())
     configFilePath  = os.path.join(configFileDir, configFileName)
 
 logPath = os.path.join(configFileDir, "run.log")
-log = Logger(file_path=logPath)
+debugLogging = os.environ.get("COMTOOL_DEBUG", "").lower() in ("1", "true", "yes")
+log = Logger(level="d" if debugLogging else "e", stdout=debugLogging, file_path=logPath)
 log.i("Config path:", configFilePath)
 log.i("Log path:", logPath)
 
@@ -60,7 +65,7 @@ class Parameters:
     config = {
         "version": 3,
         "skin": "light",
-        "locale": "en",
+        "locale": "zh_CN",
         "encoding": "UTF-8",
         "skipVersion": None,
         "connId": "serial",
@@ -141,12 +146,20 @@ QPushButton:hover {
 
 styleForCode = {
     "light":{
-        "iconColor": "white",
-        "iconSelectorColor": "#929599"
+        "iconColor": "#475569",
+        "iconSelectorColor": "#64748b",
+        "consoleIconColor": "#475569",
+        "primaryIconColor": "#ffffff",
+        "titleIconColor": "#65748c",
+        "brandIconColor": "#425ee5"
     },
     "dark":{
-        "iconColor": "#bcbcbd",
-        "iconSelectorColor": "#bcbcbd"
+        "iconColor": "#cbd5e1",
+        "iconSelectorColor": "#cbd5e1",
+        "consoleIconColor": "#b4c4d9",
+        "primaryIconColor": "#ffffff",
+        "titleIconColor": "#e2e8f0",
+        "brandIconColor": "#b7c5ff"
     }
 }
 

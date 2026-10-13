@@ -1,3 +1,6 @@
+# Modified for leon-2050/ComTool on 2026-10-13.
+# Derived from https://github.com/Neutree/COMTool; original copyright retained.
+# Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING.
 from PyQt5.QtCore import pyqtSignal, Qt, QRect, QMargins
 from PyQt5.QtWidgets import (QApplication, QWidget,QPushButton,QMessageBox,QDesktopWidget,QMainWindow,
                              QVBoxLayout,QHBoxLayout,QGridLayout,QTextEdit,QLabel,QRadioButton,QCheckBox,
@@ -88,6 +91,9 @@ class PluginItem:
         wrapperLayout = QVBoxLayout()
         wrapperLayout.setContentsMargins(0, 0, 0, 0)
         widget = QSplitter(Qt.Horizontal)
+        self.contentSplitter = widget
+        widget.setChildrenCollapsible(False)
+        widget.setHandleWidth(4)
         widget.setProperty("class", "contentWrapper")
         statusBar = self.plugin.onWidgetStatusBar(wrapper)
         wrapper.setLayout(wrapperLayout)
@@ -98,7 +104,14 @@ class PluginItem:
         self.settingWidget = QWidget()
         self.settingWidget.setProperty("class","settingWidget")
         settingLayout = QVBoxLayout()
+        settingLayout.setContentsMargins(0, 0, 0, 0)
+        settingLayout.setSpacing(6)
         self.settingWidget.setLayout(settingLayout)
+        self.settingsTabs = QTabWidget()
+        self.settingsTabs.setObjectName("inspectorTabs")
+        self.settingsTabs.setDocumentMode(True)
+        self.settingsTabs.tabBar().setDrawBase(False)
+        settingLayout.addWidget(self.settingsTabs)
         #    get connection settings widgets
         if isAddConn:
             connSettingsGroupBox = QGroupBox(_("Connection"))
@@ -108,23 +121,34 @@ class PluginItem:
             for conn in self.conns:
                 self.connSelectCommbox.addItem(conn.name)
             layout.addWidget(self.connSelectCommbox)
-            layout.setContentsMargins(1, 6, 0, 0)
+            layout.setContentsMargins(10, 18, 10, 12)
             self.connsParent = QWidget()
             layout2 = QVBoxLayout()
             layout2.setContentsMargins(0, 0, 0, 0)
             self.connsParent.setLayout(layout2)
             layout.addWidget(self.connsParent)
-            settingLayout.addWidget(connSettingsGroupBox)
+            connectionPage = QWidget()
+            connectionLayout = QVBoxLayout(connectionPage)
+            connectionLayout.setContentsMargins(0, 8, 0, 0)
+            connectionLayout.addWidget(connSettingsGroupBox)
+            connectionLayout.addStretch()
+            self.settingsTabs.addTab(connectionPage, _("Connection"))
         #    get settings widgets
         subSettingWidget = self.plugin.onWidgetSettings(widget)
         if not subSettingWidget is None:
-            settingLayout.addWidget(subSettingWidget)
-        settingLayout.addStretch()
+            optionsPage = QWidget()
+            optionsLayout = QVBoxLayout(optionsPage)
+            optionsLayout.setContentsMargins(0, 8, 0, 0)
+            optionsLayout.addWidget(subSettingWidget)
+            optionsLayout.addStretch()
+            self.settingsTabs.addTab(optionsPage, _("Options"))
         # widgets main
         self.mainWidget = self.plugin.onWidgetMain(widget)
         # widgets functional
         self.functionalWidget = QWidget()
         layout3 = QVBoxLayout()
+        layout3.setContentsMargins(4, 10, 0, 0)
+        layout3.setSpacing(10)
         self.functionalWidget.setLayout(layout3)
         loadConfigBtn = QPushButton(_("Load config"))
         shareConfigBtn = QPushButton(_("Share config"))
@@ -132,17 +156,33 @@ class PluginItem:
         layout3.addWidget(shareConfigBtn)
         loadConfigBtn.clicked.connect(lambda : self.selectLoadfile())
         shareConfigBtn.clicked.connect(lambda : self.selectSharefile())
+        # The workbench exposes these actions in the session menu.
+        self.configButtons = (loadConfigBtn, shareConfigBtn)
         pluginFuncWidget = self.plugin.onWidgetFunctional(widget)
         if not pluginFuncWidget is None:
             layout3.addWidget(pluginFuncWidget)
         layout3.addStretch()
         # add to frame
+        # Scroll the sidebars on smaller screens while keeping the data area roomy.
+        settingsScroll = QScrollArea()
+        settingsScroll.setWidgetResizable(True)
+        settingsScroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        settingsScroll.setMinimumWidth(220)
+        settingsScroll.setWidget(self.settingWidget)
+        self.settingWidget = settingsScroll
+        toolsScroll = QScrollArea()
+        toolsScroll.setWidgetResizable(True)
+        toolsScroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        toolsScroll.setMinimumWidth(260)
+        toolsScroll.setWidget(self.functionalWidget)
+        self.functionalWidget = toolsScroll
         widget.addWidget(self.settingWidget)
         widget.addWidget(self.mainWidget)
         widget.addWidget(self.functionalWidget)
-        widget.setStretchFactor(0, 1)
-        widget.setStretchFactor(1, 2)
-        widget.setStretchFactor(2, 1)
+        widget.setStretchFactor(0, 0)
+        widget.setStretchFactor(1, 1)
+        widget.setStretchFactor(2, 0)
+        widget.setSizes([280, 740, 280])
         self.functionalWidget.hide()
         # UI init done
         self.plugin.onUiInitDone()

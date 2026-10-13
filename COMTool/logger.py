@@ -1,3 +1,6 @@
+# Modified for leon-2050/ComTool on 2026-10-13.
+# Derived from https://github.com/Neutree/COMTool; original copyright retained.
+# Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING.
 '''
     logger wrapper based oh logging
 
@@ -8,7 +11,6 @@
 
 
 import logging
-import coloredlogs
 import sys
 
 class Logger:
@@ -20,74 +22,42 @@ class Logger:
                 logger_name = "logger"):
         self.log = logging.getLogger(logger_name)
         formatter=logging.Formatter(fmt=fmt)
-        level_ = logging.INFO
-        if level == "i":
-            level_ = logging.INFO
-        elif level == "w":
-            level_ = logging.WARNING
-        elif level == "e":
-            level_ = logging.ERROR
-        # terminal output
-        coloredlogs.DEFAULT_FIELD_STYLES = {'asctime': {'color': 'green'}, 'hostname': {'color': 'magenta'},
-                                    'levelname': {'color': 'green', 'bold': True}, 'request_id': {'color': 'yellow'},
-                                    'name': {'color': 'blue'}, 'programname': {'color': 'cyan'},
-                                    'processName': {'color': 'magenta'},
-                                    'threadName': {'color': 'magenta'},
-                                    'filename': {'color': 'white'},
-                                    'lineno': {'color': 'white'}}
-        level_styles = {
-            'debug': {
-                'color': "white"
-            },
-            'info': {
-                'color': "green"
-            },
-            'warn': {
-                'color': "yellow"
-            },
-            'error': {
-                'color': "red"
-            }
-        }
-
-        coloredlogs.install(level=level_, fmt=fmt, level_styles=level_styles)
+        level_ = {"d": logging.DEBUG, "i": logging.INFO,
+                  "w": logging.WARNING, "e": logging.ERROR}.get(level, logging.INFO)
         self.log.setLevel(level_)
-        # sh = logging.StreamHandler()
-        # sh.setFormatter(formatter)
-        # sh.setLevel(level_)
-        # self.log.addHandler(sh)
-        # file output
-        if not stdout:
-            self.log.propagate = False
+        self.log.propagate = False
+        # Reinitializing the wrapper must not duplicate output handlers.
+        for handler in self.log.handlers[:]:
+            self.log.removeHandler(handler)
+            handler.close()
+        if stdout and sys.stderr is not None:
+            handler = logging.StreamHandler(sys.stderr)
+            handler.setFormatter(formatter)
+            self.log.addHandler(handler)
         if file_path:
-            fh = logging.FileHandler(file_path, mode="a", encoding="utf-8")
+            # Normal launches never open or create a log until an error occurs.
+            fh = logging.FileHandler(file_path, mode="a", encoding="utf-8", delay=True)
             fh.setFormatter(formatter)
             fh.setLevel(level_)
             self.log.addHandler(fh)
+        if not self.log.handlers:
+            self.log.addHandler(logging.NullHandler())
+
+    def _write(self, level, args):
+        if self.log.isEnabledFor(level):
+            self.log.log(level, " ".join(str(arg) for arg in args))
 
     def d(self, *args):
-        out = ""
-        for arg in args:
-            out += " " + str(arg)
-        self.log.debug(out)
+        self._write(logging.DEBUG, args)
 
     def i(self, *args):
-        out = ""
-        for arg in args:
-            out += " " + str(arg)
-        self.log.info(out)
+        self._write(logging.INFO, args)
 
     def w(self, *args):
-        out = ""
-        for arg in args:
-            out += " " + str(arg)
-        self.log.warning(out)
+        self._write(logging.WARNING, args)
 
     def e(self, *args):
-        out = ""
-        for arg in args:
-            out += " " + str(arg)
-        self.log.error(out)
+        self._write(logging.ERROR, args)
 
 class Fake_Logger:
     '''

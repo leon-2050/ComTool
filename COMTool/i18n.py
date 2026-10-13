@@ -1,3 +1,6 @@
+# Modified for leon-2050/ComTool on 2026-10-13.
+# Derived from https://github.com/Neutree/COMTool; original copyright retained.
+# Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING.
 import os
 import gettext
 import babel
@@ -16,7 +19,6 @@ def _(text):
 
 def set_locale(locale_in):
     global locale, tr, root_dir
-    print("-- set locale to", locale_in)
     locale = locale_in
     locales_path = os.path.join(root_dir, 'locales')
     if not os.path.exists(locales_path): # for pyinstaller pack

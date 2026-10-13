@@ -1,3 +1,6 @@
+# Modified for leon-2050/ComTool on 2026-10-13.
+# Derived from https://github.com/Neutree/COMTool; original copyright retained.
+# Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING.
 
 from os import remove
 from PyQt5.QtCore import pyqtSignal,Qt, QRect, QMargins, QObject, pyqtSlot, QRegExp
@@ -138,6 +141,7 @@ class TCP_UDP(COMM):
         self.autoReconnect = QCheckBox()
         self.autoReconnectIntervalEdit = QLineEdit("1.0")
         self.serialOpenCloseButton = QPushButton(_("OPEN"))
+        self.serialOpenCloseButton.setObjectName("connectionButton")
         self.serialSettingsLayout.addWidget(protocolLabel,0,0)
         self.serialSettingsLayout.addWidget(protocolWidget, 0, 1, 1, 2)
         self.serialSettingsLayout.addWidget(self.modeLabel, 1, 0)

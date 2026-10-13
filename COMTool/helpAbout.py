@@ -1,3 +1,6 @@
+# Modified for leon-2050/ComTool on 2026-10-13.
+# Derived from https://github.com/Neutree/COMTool; original copyright retained.
+# Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING.
 import sys
 try:
     import parameters
@@ -7,7 +10,7 @@ except ImportError:
     from COMTool import parameters
     from COMTool.i18n import _
     from COMTool import version
-    
+
 import os
 import PyQt5.QtCore
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout
@@ -41,7 +44,7 @@ def HelpInfo():
     parameters.configFilePath,
     _("Old config backup in"),
     os.path.dirname(parameters.configFilePath,),
-    _('COMTool is a Open source project create by'),
+    _('COMTool is a Open source project create by').replace("COMTool", parameters.appName),
     '{}/{}'.format(parameters.dataPath, parameters.appLogo2),
     _("License"),
     _('Welcome to improve it together and add plugins'),

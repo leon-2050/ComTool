@@ -1,17 +1,23 @@
+# Modified for leon-2050/ComTool on 2026-10-13.
+# Derived from https://github.com/Neutree/COMTool; original copyright retained.
+# Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING.
 try:
     from Combobox import ComboBox
     from i18n import _
     import utils, parameters
     from parameters import dataPath
+    from ui_icons import icon as makeIcon
 except ImportError:
     from COMTool import utils, parameters
     from COMTool.i18n import _
     from COMTool.Combobox import ComboBox
     from COMTool.parameters import dataPath
+    from COMTool.ui_icons import icon as makeIcon
 
 from PyQt5.QtWidgets import QWidget
+from PyQt5 import sip
 from PyQt5.QtGui import QIcon
-import qtawesome as qta # https://github.com/spyder-ide/qtawesome
+from PyQt5.QtCore import QSize
 import os
 
 _buttonIcons = {}
@@ -32,13 +38,13 @@ def setSkin(skin):
     if skin == _skin:
         return
     delete = []
-    for btn in _buttonIcons:
-        if type(btn.parent()) == None:
+    for btn in list(_buttonIcons):
+        if sip.isdeleted(btn):
             delete.append(btn)
             continue
         icon, colorVar = _buttonIcons[btn]
         color = parameters.styleForCode[skin][colorVar]
-        btn.setIcon(qta.icon(icon, color=color))
+        btn.setIcon(makeIcon(icon, color=color))
     for btn in delete:
         _buttonIcons.pop(btn)
     _skin = skin    
@@ -50,8 +56,12 @@ def setButtonIcon(button, icon : str, colorVar = "iconColor"):
     global _skin, _buttonIcons
 
     iconColor = parameters.styleForCode[_skin][colorVar]
+    firstRegistration = button not in _buttonIcons
     _buttonIcons[button] = [icon, colorVar]
-    button.setIcon(qta.icon(icon, color=iconColor))
+    if firstRegistration:
+        button.destroyed.connect(lambda _=None, btn=button: _buttonIcons.pop(btn, None))
+        button.setIconSize(QSize(18, 18))
+    button.setIcon(makeIcon(icon, color=iconColor))
 
 def clearButtonIcon(button):
     global _skin, _buttonIcons

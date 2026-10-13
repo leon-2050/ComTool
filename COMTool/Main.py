@@ -1,3 +1,6 @@
+# Modified for leon-2050/ComTool on 2026-10-13.
+# Derived from https://github.com/Neutree/COMTool; original copyright retained.
+# Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING.
 import sys
 import os
 try:
@@ -21,5 +24,5 @@ if __name__ == '__main__':
         if not ret is None:
             break
         restart_program()
-    print("-- program exit, code:", ret)
+    log.d("Program exit, code:", ret)
     sys.exit(ret)

@@ -1,3 +1,6 @@
+# Modified for leon-2050/ComTool on 2026-10-13.
+# Derived from https://github.com/Neutree/COMTool; original copyright retained.
+# Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING.
 # Chinese (Simplified, China) translations for PROJECT.
 # Copyright (C) 2021 ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
@@ -605,7 +608,7 @@ msgstr "清除历史"
 
 #: plugins/dbg.py:263
 msgid "Font Size"
-msgstr ""
+msgstr "字体大小"
 
 #: plugins/dbg.py:276
 msgid "Save log"
@@ -998,3 +1001,313 @@ msgstr "我的插件2"
 #~ msgid "Sendding File"
 #~ msgstr "发送文件中"
 
+
+
+#. Desktop interface
+msgid "Receive"
+msgstr "接收"
+
+
+#. Desktop interface
+msgid "Send history"
+msgstr "发送历史"
+
+
+#. Desktop interface
+msgid "Waiting for incoming data…"
+msgstr "等待接收数据…"
+
+
+#. Desktop interface
+msgid "Enter data to send · Ctrl+Enter"
+msgstr "输入要发送的数据 · Ctrl+Enter"
+
+
+#. Desktop interface
+msgid "Show / hide connection settings"
+msgstr "显示 / 隐藏连接设置"
+
+
+#. Desktop interface
+msgid "Show / hide tools"
+msgstr "显示 / 隐藏工具"
+
+
+#. Desktop interface
+msgid "Appearance"
+msgstr "外观"
+
+
+#. Desktop interface
+msgid "Language"
+msgstr "语言"
+
+
+#. Desktop interface
+msgid "Add plugin tab"
+msgstr "添加插件标签页"
+
+
+#. Desktop interface
+msgid "Sessions"
+msgstr "会话"
+
+
+#. Desktop interface
+msgid "Serial session"
+msgstr "新建串口会话"
+
+
+#. Desktop interface
+msgid "Network session"
+msgstr "新建网络会话"
+
+
+#. Desktop interface
+msgid "SSH terminal"
+msgstr "新建 SSH 终端"
+
+
+#. Desktop interface
+msgid "Close session"
+msgstr "关闭会话"
+
+
+#. Desktop interface
+msgid "Exit"
+msgstr "退出"
+
+
+#. Desktop interface
+msgid "View"
+msgstr "视图"
+
+
+#. Desktop interface
+msgid "Session sidebar"
+msgstr "会话侧栏"
+
+
+#. Desktop interface
+msgid "Connection settings"
+msgstr "连接配置"
+
+
+#. Desktop interface
+msgid "Tools"
+msgstr "工具"
+
+
+#. Desktop interface
+msgid "Plugins"
+msgstr "插件"
+
+
+#. Desktop interface
+msgid "Settings"
+msgstr "设置"
+
+
+#. Desktop interface
+msgid "New session"
+msgstr "新建会话"
+
+
+#. Desktop interface
+msgid "Network"
+msgstr "网络"
+
+
+#. Desktop interface
+msgid "Terminal"
+msgstr "终端"
+
+
+#. Desktop interface
+msgid "Find a session…"
+msgstr "查找会话…"
+
+
+#. Desktop interface
+msgid "Workspace sessions"
+msgstr "工作区会话"
+
+
+#. Studio interface
+msgid "Debug workspace"
+msgstr "调试工作台"
+
+
+#. Studio interface
+msgid "Ready to connect"
+msgstr "准备连接设备"
+
+
+#. Studio interface
+msgid "Workspace menu"
+msgstr "工作区菜单"
+
+
+#. Studio interface
+msgid "No port selected"
+msgstr "未选择端口"
+
+
+#. Studio interface
+msgid "Receive monitor"
+msgstr "接收监视"
+
+
+#. Studio interface
+msgid "Compose data"
+msgstr "发送编辑"
+
+
+#. Studio interface
+msgid "Copy received data"
+msgstr "复制接收区的全部内容"
+
+
+#. Studio interface
+msgid "Copy"
+msgstr "复制"
+
+
+#. Studio interface
+msgid "Options"
+msgstr "收发选项"
+
+
+#. Studio interface
+msgid "Inspector"
+msgstr "参数设置"
+
+
+#. Studio interface
+msgid "Close inspector"
+msgstr "关闭面板"
+
+
+#. Studio interface
+msgid "Text encoding"
+msgstr "文本编码"
+
+
+#. Studio interface
+msgid "Open sessions"
+msgstr "已打开"
+
+
+#. Studio interface
+msgid "open sessions"
+msgstr "个会话"
+
+
+#. Studio interface
+msgid "Session tools"
+msgstr "会话工具"
+
+
+#. Studio interface
+msgid "Select a port in connection settings"
+msgstr "请在连接设置中选择串口"
+
+
+#. Studio interface
+msgid "No received data yet"
+msgstr "尚无接收数据"
+
+
+#. Studio interface
+msgid "Connect a device to see incoming data here"
+msgstr "连接设备后，接收数据会显示在这里"
+
+
+#. Studio interface
+msgid "Connected. Incoming data will appear here"
+msgstr "已连接，等待设备发送数据"
+
+
+#. Studio interface
+msgid "Connecting to your device…"
+msgstr "正在连接设备…"
+
+
+#. Studio interface
+msgid "Connection lost. Reconnect to continue receiving"
+msgstr "连接已丢失，重新连接后继续接收"
+
+
+#. Studio interface
+msgid "Received data"
+msgstr "接收数据"
+
+
+#. Studio interface
+msgid "Data to send"
+msgstr "要发送的数据"
+
+
+#. Studio interface
+msgid "Live incoming data"
+msgstr "实时接收设备数据"
+
+
+#. Studio interface
+msgid "Receive display format"
+msgstr "接收显示格式"
+
+
+#. Studio interface
+msgid "Prepare your next message"
+msgstr "编辑并发送下一条消息"
+
+
+#. Studio interface
+msgid "Send data format"
+msgstr "发送数据格式"
+
+
+#. Studio interface
+msgid "Connect a device to enable sending"
+msgstr "连接设备后即可发送"
+
+
+#. Studio interface
+msgid "Text"
+msgstr "文本"
+
+
+#. Studio interface
+msgid "Ctrl+Enter to send"
+msgstr "Ctrl+Enter 发送"
+
+
+#. Studio interface
+msgid "No active session"
+msgstr "没有活动会话"
+
+
+#. Studio interface
+msgid "Select or create a session"
+msgstr "从左侧选择或新建一个会话"
+
+
+#. Studio interface
+msgid "Enable logging"
+msgstr "启用记录"
+
+
+#. Studio interface
+msgid "Server"
+msgstr "服务端"
+
+
+#. Terminal display options
+msgid "Keyword highlighting"
+msgstr "关键词高亮"
+
+
+#. Terminal display options
+msgid "Highlight addresses, command options and status keywords without overriding command colors."
+msgstr "高亮地址、命令参数和状态关键词，保留命令自带的颜色。"

@@ -1,3 +1,6 @@
+# Modified for leon-2050/ComTool on 2026-10-13.
+# Derived from https://github.com/Neutree/COMTool; original copyright retained.
+# Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING.
 
 if __name__ == "__main__":
     import sys, os
@@ -152,6 +155,7 @@ class Serial(COMM):
         self.checkBoxRTS.setToolTip(_("Check to enable(usually output low level)"))
         self.checkBoxDTR.setToolTip(_("Check to enable(usually output low level)"))
         self.serialOpenCloseButton = QPushButton(_("OPEN"))
+        self.serialOpenCloseButton.setObjectName("connectionButton")
         serialSettingsLayout.addWidget(serialPortLabek,0,0)
         serialSettingsLayout.addWidget(serailBaudrateLabel, 1, 0)
         serialSettingsLayout.addWidget(serailBytesLabel, 2, 0)
@@ -200,7 +204,7 @@ class Serial(COMM):
             newPort = obj.currentText().split(" ")[0]
             if newPort and not self.isDetectSerialPort and (newPort != self.config["port"] or  not self.com.port):
                 self.config["port"] = newPort
-                print("-- set to new port:", self.config["port"])
+                parameters.log.d("Set to new port:", self.config["port"])
                 try:
                     self.com.port = self.config["port"]
                 except Exception as e:
@@ -215,7 +219,7 @@ class Serial(COMM):
                 self.serailBaudrateCombobox.clearEditText()
                 return
             self.config[conf_type] = value_type(text.split(" ")[0])
-            print("-- set serial {} to {}".format(conf_type, self.config[conf_type]))
+            parameters.log.d("Set serial", conf_type, "to", self.config[conf_type])
             if conf_type == "parity":
                 self.com.__setattr__(conf_type, self.config[conf_type][0])
             elif conf_type == "stopbits":

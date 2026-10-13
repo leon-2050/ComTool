@@ -1,3 +1,6 @@
+# Modified for leon-2050/ComTool on 2026-10-13.
+# Derived from https://github.com/Neutree/COMTool; original copyright retained.
+# Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING.
 
 import os
 from PyQt5.QtCore import pyqtSignal,Qt, QRect, QMargins, QObject, pyqtSlot, QRegExp
@@ -40,7 +43,7 @@ class SSH_CONN:
         self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         self.client.connect(host, port=port, username=user, password=password, key_filename=ssh_key_file)
         self.channel = self.client.get_transport().open_session()
-        self.channel.get_pty(term="linux", width=pty_width, height=pty_height)
+        self.channel.get_pty(term="xterm-256color", width=pty_width, height=pty_height)
         self.channel.invoke_shell()
 
     def settimeout(self, timeout):
@@ -163,6 +166,7 @@ class SSH(COMM):
         self.sshKeyInputBtn = QPushButton(_("File"))
         self.savedCombobox = ComboBox()
         self.serialOpenCloseButton = QPushButton(_("OPEN"))
+        self.serialOpenCloseButton.setObjectName("connectionButton")
         self.serialSettingsLayout.addWidget(hostLabel,0,0)
         self.serialSettingsLayout.addWidget(self.hostInput, 0, 1, 1, 2)
         self.serialSettingsLayout.addWidget(portLabel,1,0)

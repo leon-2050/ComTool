@@ -1,3 +1,6 @@
+# Modified for leon-2050/ComTool on 2026-10-13.
+# Derived from https://github.com/Neutree/COMTool; original copyright retained.
+# Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING.
 try:
     import version
     import parameters
@@ -17,12 +20,12 @@ class AutoUpdate:
             log.i("get version info from neucrack fail, now get from github")
             need , v = self.checkUpdate_github()
         return need, v
-    
+
     def checkUpdate_github(self):
         import requests, json
         latest = version.Version()
         try:
-            page = requests.get(self.releaseApiUrl)
+            page = requests.get(self.releaseApiUrl, timeout=(3, 5))
             if page.status_code != 200:
                 log.i("request {} fail, check update fail!".format(self.releaseApiUrl))
                 return False, None
@@ -41,8 +44,7 @@ class AutoUpdate:
             if self.needUpdate(latest):
                 return True, latest
         except Exception as e:
-            import traceback
-            traceback.print_exc()
+            log.d("Update check failed:", e)
             return False, None
         log.i("Already latest version!")
         return False, latest
@@ -54,7 +56,7 @@ class AutoUpdate:
             headers = {
                 "User-Agent": f"comtool_v{version.major}.{version.minor}.{version.dev}-{platform.platform()}"
             }
-            page = requests.post(self.releaseApiUrl2, headers=headers)
+            page = requests.post(self.releaseApiUrl2, headers=headers, timeout=(3, 5))
             if page.status_code != 200:
                 log.i("request {} fail, check update fail!".format(self.releaseApiUrl))
                 return False, None
@@ -63,8 +65,7 @@ class AutoUpdate:
             if self.needUpdate(latest):
                 return True, latest
         except Exception as e:
-            import traceback
-            traceback.print_exc()
+            log.d("Update check failed:", e)
             return False, None
         log.i("Already latest version!")
         return False, latest

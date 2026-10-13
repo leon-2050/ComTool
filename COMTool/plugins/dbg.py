@@ -1,3 +1,6 @@
+# Modified for leon-2050/ComTool on 2026-10-13.
+# Derived from https://github.com/Neutree/COMTool; original copyright retained.
+# Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING.
 try:
     import parameters,helpAbout,autoUpdate
     from Combobox import ComboBox
@@ -24,11 +27,73 @@ except Exception:
 from PyQt5.QtCore import pyqtSignal,Qt, QRect, QMargins
 from PyQt5.QtWidgets import (QApplication, QWidget,QPushButton,QMessageBox,QDesktopWidget,QMainWindow,
                              QVBoxLayout,QHBoxLayout,QGridLayout,QTextEdit,QLabel,QRadioButton,QCheckBox,
-                             QLineEdit,QGroupBox,QSplitter,QFileDialog, QScrollArea, QSpinBox)
+                             QLineEdit,QGroupBox,QSplitter,QFileDialog, QScrollArea, QSpinBox,
+                             QButtonGroup, QSizePolicy, QStyle, QStylePainter, QStyleOptionComboBox)
 from PyQt5.QtGui import QIcon,QFont,QTextCursor,QPixmap,QColor
 import qtawesome as qta # https://github.com/spyder-ide/qtawesome
 import os, threading, time, re
 from datetime import datetime
+
+
+class HistoryComboBox(ComboBox):
+    def paintEvent(self, event):
+        if self.count():
+            return super().paintEvent(event)
+        option = QStyleOptionComboBox()
+        self.initStyleOption(option)
+        option.currentText = _("Send history")
+        painter = QStylePainter(self)
+        painter.drawComplexControl(QStyle.CC_ComboBox, option)
+        painter.drawControl(QStyle.CE_ComboBoxLabel, option)
+
+
+class ReceiveConsole(QTextEdit):
+    """A real empty state that does not become part of received data."""
+
+    def __init__(self):
+        super().__init__()
+        self.emptyState = QWidget(self.viewport())
+        self.emptyState.setObjectName("receiveEmptyState")
+        self.emptyState.setAttribute(Qt.WA_TransparentForMouseEvents)
+        emptyLayout = QVBoxLayout(self.emptyState)
+        emptyLayout.setContentsMargins(24, 24, 24, 24)
+        emptyLayout.setSpacing(8)
+        emptyLayout.addStretch()
+        self.emptyTitle = QLabel(_("No received data yet"))
+        self.emptyTitle.setProperty("class", "emptyStateTitle")
+        self.emptyTitle.setAlignment(Qt.AlignCenter)
+        self.emptyTitle.setWordWrap(True)
+        self.emptySubtitle = QLabel(_("Connect a device to see incoming data here"))
+        self.emptySubtitle.setProperty("class", "emptyStateSubtitle")
+        self.emptySubtitle.setAlignment(Qt.AlignCenter)
+        self.emptySubtitle.setWordWrap(True)
+        emptyLayout.addWidget(self.emptyTitle)
+        emptyLayout.addWidget(self.emptySubtitle)
+        emptyLayout.addStretch()
+        self.textChanged.connect(self._updateEmptyState)
+        self._updateEmptyState()
+
+    def _updateEmptyState(self):
+        self.emptyState.setVisible(self.document().isEmpty())
+        self.emptyState.setGeometry(self.viewport().rect())
+        self.emptyState.raise_()
+
+    def setConnectionStatus(self, status):
+        if status == ConnectionStatus.CONNECTED:
+            subtitle = _("Connected. Incoming data will appear here")
+        elif status == ConnectionStatus.CONNECTING:
+            subtitle = _("Connecting to your device…")
+        elif status == ConnectionStatus.LOSE:
+            subtitle = _("Connection lost. Reconnect to continue receiving")
+        else:
+            subtitle = _("Connect a device to see incoming data here")
+        self.emptySubtitle.setText(subtitle)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, "emptyState"):
+            self.emptyState.setGeometry(self.viewport().rect())
+
 
 class Plugin(Plugin_Base):
     '''
@@ -107,36 +172,128 @@ class Plugin(Plugin_Base):
                 self.config[k] = default[k]
         self.lastShowTail = ''
         self.justSent = False # sent data before received data flag
+        self.connectionStatus = ConnectionStatus.CLOSED
 
     def onWidgetMain(self, parent):
         self.mainWidget = QSplitter(Qt.Vertical)
+        self.mainWidget.setObjectName("consoleWorkspace")
+        self.mainWidget.setChildrenCollapsible(False)
+        self.mainWidget.setHandleWidth(12)
         # widgets receive and send area
-        self.receiveArea = QTextEdit()
-        font = QFont('Menlo,Consolas,Bitstream Vera Sans Mono,Courier New,monospace, Microsoft YaHei', 10)
+        self.receiveArea = ReceiveConsole()
+        self.receiveArea.setObjectName("receiveConsole")
+        self.receiveArea.setReadOnly(True)
+        self.receiveArea.setAccessibleName(_("Received data"))
+        self.receiveArea.setMinimumHeight(170)
+        font = QFont('Consolas', 10)
         self.receiveArea.setFont(font)
         self.sendArea = QTextEdit()
+        self.sendArea.setObjectName("sendConsole")
+        self.sendArea.setAccessibleName(_("Data to send"))
+        self.sendArea.setFont(font)
+        self.sendArea.setPlaceholderText(_("Enter data to send · Ctrl+Enter"))
         self.sendArea.setAcceptRichText(False)
-        self.clearReceiveButtion = QPushButton("")
-        utils_ui.setButtonIcon(self.clearReceiveButtion, "mdi6.broom")
-        self.sendButton = QPushButton("")
-        utils_ui.setButtonIcon(self.sendButton, "fa.send")
-        self.sendHistory = ComboBox()
+        self.sendArea.setMinimumHeight(62)
+        self.clearReceiveButtion = QPushButton()
+        self.clearReceiveButtion.setProperty("class", "consoleAction")
+        self.clearReceiveButtion.setAccessibleName(_("Clear Receive Area"))
+        self.clearReceiveButtion.setToolTip(_("Clear Receive Area") + " · Ctrl+K")
+        utils_ui.setButtonIcon(self.clearReceiveButtion, "mdi6.broom", "iconColor")
+        self.clearReceiveButtion.setFixedSize(32, 32)
+        self.sendButton = QPushButton(_("Send"))
+        self.sendButton.setProperty("class", "primaryButton")
+        self.sendButton.setAccessibleName(_("Send data"))
+        self.sendButton.setToolTip(_("Send data") + " · Ctrl+Enter")
+        self.sendButton.setEnabled(False)
+        self.sendButton.setMinimumWidth(112)
+        utils_ui.setButtonIcon(self.sendButton, "fa.send", "primaryIconColor")
+        self.sendHistory = HistoryComboBox()
+        self.sendHistory.setObjectName("sendHistory")
+        self.sendHistory.setAccessibleName(_("Send history"))
+        self.sendHistory.setToolTip(_("Send history"))
+        self.sendHistory.currentTextChanged.connect(lambda text: self.sendHistory.setToolTip(text or _("Send history")))
+        self.sendHistory.setPlaceholderText(_("Send history"))
+        self.sendHistory.setMinimumWidth(120)
+        self.sendHistory.setMaximumWidth(240)
+        self.sendHistory.setMinimumContentsLength(18)
+        self.sendHistory.setSizeAdjustPolicy(ComboBox.AdjustToMinimumContentsLengthWithIcon)
+        self.sendHistory.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+
+        receiveWidget = QWidget()
+        receiveWidget.setObjectName("receivePane")
+        receiveLayout = QVBoxLayout(receiveWidget)
+        receiveLayout.setContentsMargins(0, 0, 0, 0)
+        receiveLayout.setSpacing(0)
+        receiveHeaderWidget = QWidget()
+        receiveHeaderWidget.setProperty("class", "paneHeader")
+        receiveHeader = QHBoxLayout(receiveHeaderWidget)
+        receiveHeader.setContentsMargins(18, 12, 14, 12)
+        receiveHeader.setSpacing(10)
+        receiveHeader.addWidget(self._paneHeading(_("Receive monitor"), _("Live incoming data")), 1)
+        self.receiveModeSegment, self.receiveModeText, self.receiveModeHex = self._createModeSegment(
+            self.receiveSettingsAscii, self.receiveSettingsHex, _("Receive display format"))
+        receiveHeader.addWidget(self.receiveModeSegment)
+        self.copyReceiveButton = QPushButton()
+        self.copyReceiveButton.setProperty("class", "consoleAction")
+        self.copyReceiveButton.setAccessibleName(_("Copy received data"))
+        self.copyReceiveButton.setToolTip(_("Copy received data"))
+        utils_ui.setButtonIcon(self.copyReceiveButton, "fa.copy", "iconColor")
+        self.copyReceiveButton.setFixedSize(32, 32)
+        self.copyReceiveButton.clicked.connect(lambda: QApplication.clipboard().setText(self.receiveArea.toPlainText()))
+        receiveHeader.addWidget(self.copyReceiveButton)
+        receiveHeader.addWidget(self.clearReceiveButtion)
+        receiveLayout.addWidget(receiveHeaderWidget)
+        receiveLayout.addWidget(self.receiveArea, 1)
+
         sendWidget = QWidget()
-        sendAreaWidgetsLayout = QHBoxLayout()
-        sendAreaWidgetsLayout.setContentsMargins(0,4,0,0)
+        sendWidget.setObjectName("sendPane")
+        sendWidget.setMinimumHeight(200)
+        sendAreaWidgetsLayout = QVBoxLayout()
+        sendAreaWidgetsLayout.setContentsMargins(0, 0, 0, 0)
+        sendAreaWidgetsLayout.setSpacing(0)
         sendWidget.setLayout(sendAreaWidgetsLayout)
-        buttonLayout = QVBoxLayout()
-        buttonLayout.addWidget(self.clearReceiveButtion)
-        buttonLayout.addStretch(1)
-        buttonLayout.addWidget(self.sendButton)
-        sendAreaWidgetsLayout.addWidget(self.sendArea)
-        sendAreaWidgetsLayout.addLayout(buttonLayout)
-        self.mainWidget.addWidget(self.receiveArea)
+        sendHeaderWidget = QWidget()
+        sendHeaderWidget.setProperty("class", "paneHeader")
+        sendHeader = QHBoxLayout(sendHeaderWidget)
+        sendHeader.setContentsMargins(18, 12, 18, 10)
+        sendHeader.setSpacing(10)
+        sendHeader.addWidget(self._paneHeading(_("Compose data"), _("Prepare your next message")), 1)
+        self.sendModeSegment, self.sendModeText, self.sendModeHex = self._createModeSegment(
+            self.sendSettingsAscii, self.sendSettingsHex, _("Send data format"))
+        sendHeader.addWidget(self.sendModeSegment)
+        sendAreaWidgetsLayout.addWidget(sendHeaderWidget)
+        sendAreaWidgetsLayout.addWidget(self.sendArea, 1)
+        sendFooterWidget = QWidget()
+        sendFooterWidget.setObjectName("composerFooter")
+        sendFooter = QHBoxLayout(sendFooterWidget)
+        sendFooter.setContentsMargins(16, 10, 16, 12)
+        sendFooter.setSpacing(8)
+        self.sendConnectionHint = QLabel(_("Connect a device to enable sending"))
+        self.sendConnectionHint.setObjectName("sendConnectionHint")
+        self.sendConnectionHint.setProperty("class", "mutedText")
+        self.sendConnectionHint.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.sendConnectionHint.setFixedWidth(160)
+        self.sendConnectionHint.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.sendConnectionHint.setMaximumWidth(170)
+        self.sendConnectionHint.setToolTip(_("Connect a device to enable sending"))
+        sendFooter.addWidget(self.sendHistory)
+        self.clearSendButton = QPushButton()
+        self.clearSendButton.setProperty("class", "consoleAction")
+        self.clearSendButton.setAccessibleName(_("Clear Send Area"))
+        self.clearSendButton.setToolTip(_("Clear Send Area") + " · Ctrl+L")
+        utils_ui.setButtonIcon(self.clearSendButton, "mdi.backspace-outline", "iconColor")
+        self.clearSendButton.setFixedSize(32, 32)
+        self.clearSendButton.clicked.connect(self.sendArea.clear)
+        sendFooter.addWidget(self.clearSendButton)
+        sendFooter.addStretch(1)
+        sendFooter.addWidget(self.sendConnectionHint)
+        sendFooter.addWidget(self.sendButton)
+        sendAreaWidgetsLayout.addWidget(sendFooterWidget)
+        self.mainWidget.addWidget(receiveWidget)
         self.mainWidget.addWidget(sendWidget)
-        self.mainWidget.addWidget(self.sendHistory)
-        self.mainWidget.setStretchFactor(0, 7)
-        self.mainWidget.setStretchFactor(1, 2)
-        self.mainWidget.setStretchFactor(2, 1)
+        self.mainWidget.setStretchFactor(0, 3)
+        self.mainWidget.setStretchFactor(1, 1)
+        self.mainWidget.setSizes([570, 200])
         # event
         self.sendButton.clicked.connect(self.onSendData)
         self.clearReceiveButtion.clicked.connect(self.clearReceiveBuffer)
@@ -144,6 +301,48 @@ class Plugin(Plugin_Base):
         self.sendHistory.activated.connect(self.onSendHistoryIndexChanged)
 
         return self.mainWidget
+
+    def _paneHeading(self, title, subtitle):
+        widget = QWidget()
+        widget.setProperty("class", "paneHeading")
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
+        titleLabel = QLabel(title)
+        titleLabel.setProperty("class", "sectionTitle")
+        subtitleLabel = QLabel(subtitle)
+        subtitleLabel.setProperty("class", "sectionSubtitle")
+        layout.addWidget(titleLabel)
+        layout.addWidget(subtitleLabel)
+        return widget
+
+    def _createModeSegment(self, asciiRadio, hexRadio, accessibleName):
+        widget = QWidget()
+        widget.setObjectName("modeSegment")
+        widget.setAccessibleName(accessibleName)
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(3, 3, 3, 3)
+        layout.setSpacing(2)
+        group = QButtonGroup(widget)
+        group.setExclusive(True)
+        textButton = QPushButton(_("Text"))
+        hexButton = QPushButton(_("HEX"))
+        for button, radio in ((textButton, asciiRadio), (hexButton, hexRadio)):
+            button.setProperty("class", "modeButton")
+            button.setCheckable(True)
+            button.setAccessibleName(accessibleName + " · " + button.text())
+            button.setToolTip(radio.toolTip())
+            button.setMinimumWidth(54)
+            group.addButton(button)
+            layout.addWidget(button)
+            button.clicked.connect(lambda checked, r=radio: r.click() if not r.isChecked() else None)
+        def syncButtons():
+            textButton.setChecked(asciiRadio.isChecked())
+            hexButton.setChecked(hexRadio.isChecked())
+        asciiRadio.toggled.connect(syncButtons)
+        hexRadio.toggled.connect(syncButtons)
+        syncButtons()
+        return widget, textButton, hexButton
 
     def onWidgetSettings(self, parent):
         # serial receive settings
@@ -179,7 +378,7 @@ class Plugin(Plugin_Base):
         serialReceiveSettingsLayout.addWidget(self.receiveSettingsWrap, 4, 0, 1, 1)
         serialReceiveSettingsLayout.addWidget(self.receiveEscape, 4, 1, 1, 1)
         serialReceiveSettingsGroupBox.setLayout(serialReceiveSettingsLayout)
-        serialReceiveSettingsGroupBox.setAlignment(Qt.AlignHCenter)
+        serialReceiveSettingsGroupBox.setAlignment(Qt.AlignLeft)
         layout.addWidget(serialReceiveSettingsGroupBox)
 
         # serial send settings
@@ -212,8 +411,7 @@ class Plugin(Plugin_Base):
         serialSendSettingsLayout.addWidget(self.sendSettingsScheduled, 2, 1, 1, 1)
         serialSendSettingsLayout.addWidget(self.sendSettingsCRLF, 3, 0, 1, 1)
         serialSendSettingsLayout.addWidget(self.sendSettingsAppendNewLine, 3, 1, 1, 1)
-        serialSendSettingsLayout.addWidget(self.sendSettingsEscape, 4, 0, 1, 2)
-        serialSendSettingsLayout.addWidget(self.sendSettingsEscape, 4, 0, 1, 2)
+        serialSendSettingsLayout.addWidget(self.sendSettingsEscape, 4, 0, 1, 1)
         serialSendSettingsLayout.addWidget(self.sendSettingsRecord, 4, 1, 1, 1)
         serialSendSettingsGroupBox.setLayout(serialSendSettingsLayout)
         layout.addWidget(serialSendSettingsGroupBox)
@@ -307,6 +505,7 @@ class Plugin(Plugin_Base):
         logFileWrapper = QVBoxLayout()
         logFileLayout = QHBoxLayout()
         self.saveLogCheckbox = QCheckBox()
+        self.saveLogCheckbox.setText(_("Enable logging"))
         self.logFilePath = QLineEdit()
         self.logFileBtn = QPushButton(_("Log path"))
         self.saveLogAutoNew = QCheckBox(_("Auto new file"))
@@ -397,6 +596,8 @@ class Plugin(Plugin_Base):
         self.config["fontSize"] = size
 
     def onSendSettingsHexClicked(self):
+        if not self.config["sendAscii"]:
+            return
         self.config["sendAscii"] = False
         data = self.sendArea.toPlainText().replace("\n","\r\n")
         data = utils.bytes_to_hex_str(data.encode())
@@ -404,6 +605,8 @@ class Plugin(Plugin_Base):
         self.sendArea.insertPlainText(data)
 
     def onSendSettingsAsciiClicked(self):
+        if self.config["sendAscii"]:
+            return
         self.config["sendAscii"] = True
         try:
             data = self.sendArea.toPlainText().replace("\n"," ").strip()
@@ -526,6 +729,14 @@ class Plugin(Plugin_Base):
 
     def onConnChanged(self, status:ConnectionStatus, msg:str):
         super().onConnChanged(status, msg)
+        self.connectionStatus = status
+        if hasattr(self, "sendButton"):
+            self.sendButton.setEnabled(status == ConnectionStatus.CONNECTED)
+            self.sendConnectionHint.setText(
+                _("Ctrl+Enter to send") if status == ConnectionStatus.CONNECTED
+                else _("Connect a device to enable sending"))
+            self.sendConnectionHint.setToolTip(self.sendConnectionHint.text())
+            self.receiveArea.setConnectionStatus(status)
         if status == ConnectionStatus.CONNECTED and self.config["saveLogAutoNew"]:
             self.updateLogPath()
 

@@ -1,10 +1,12 @@
+# Modified for leon-2050/ComTool on 2026-10-13.
+# Derived from https://github.com/Neutree/COMTool; original copyright retained.
+# Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING.
 import ctypes
-from PyQt5.QtCore import pyqtSignal, QPoint, Qt, QEvent, QObject
+from PyQt5.QtCore import pyqtSignal, QPoint, Qt, QEvent, QObject, QSize
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QLabel, QStyleOption, QStyle, QPushButton, QTextEdit,
                             QPlainTextEdit, QMainWindow, QComboBox, QListView, QTabWidget, QStackedWidget, QListWidget,
                             QGridLayout, QLineEdit, QDialog, QScrollArea)
 from PyQt5.QtGui import QIcon, QPixmap, QPainter, QMouseEvent, QColor, QKeyEvent, QHideEvent, QKeySequence
-import qtawesome as qta # https://github.com/spyder-ide/qtawesome
 import os, sys
 
 try:
@@ -12,13 +14,42 @@ try:
     from Combobox import ComboBox
     from i18n import _
     import parameters
-    from qta_icon_browser import selectIcon
 except Exception:
     from COMTool import utils_ui
     from COMTool.Combobox import ComboBox
     from COMTool.i18n import _
     from COMTool import parameters
-    from COMTool.qta_icon_browser import selectIcon
+
+
+def selectIcon(*args, **kwargs):
+    # The full icon catalogue is needed only when its picker is opened.
+    try:
+        from qta_icon_browser import selectIcon as select
+    except ImportError:
+        from COMTool.qta_icon_browser import selectIcon as select
+    return select(*args, **kwargs)
+
+
+class AppIconLabel(QLabel):
+    """Render the vector icon at the current screen's pixel density."""
+    def __init__(self, path, size):
+        super().__init__()
+        self.isBrand = path == "brand"
+        self.iconColor = None
+        self.appIcon = QIcon() if self.isBrand else QIcon(path)
+        self.setFixedSize(size, size)
+
+    def paintEvent(self, event):
+        if self.isBrand:
+            color = utils_ui.getStyleVar("brandIconColor")
+            if color != self.iconColor:
+                self.appIcon = utils_ui.makeIcon("brand", color=color)
+                self.iconColor = color
+        painter = QPainter(self)
+        try:
+            self.appIcon.paint(painter, self.rect(), Qt.AlignCenter)
+        finally:
+            painter.end()
 
 
 class TitleBar(QWidget):
@@ -55,21 +86,25 @@ class TitleBar(QWidget):
         else:
             self.setLayout(layout)
         self.setFixedHeight(self._height)
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(14,0,0,0)
         layout.setSpacing(0)
         iconWidget = None
-        if icon and os.path.exists(icon):
-            iconWidget = QLabel()
-            iconWidget.setPixmap(QPixmap(icon).scaled(height, height))
+        if icon and (icon == "brand" or os.path.exists(icon)):
+            if icon != "brand" and os.path.abspath(icon) == os.path.abspath(os.path.join(parameters.dataPath, parameters.appIcon)):
+                icon = "brand"
+            iconWidget = AppIconLabel(icon, 20)
             iconWidget.setProperty("class", "icon")
+        self.iconWidget = iconWidget
         self.min = QPushButton("")
         self.max = QPushButton("")
         self.close = QPushButton("")
         self.top = QPushButton("")
-        utils_ui.setButtonIcon(self.min, btnIcons[0])
-        utils_ui.setButtonIcon(self.max, btnIcons[1][0])
-        utils_ui.setButtonIcon(self.close, btnIcons[2])
-        utils_ui.setButtonIcon(self.top, btnIcons[3][0])
+        utils_ui.setButtonIcon(self.min, btnIcons[0], "titleIconColor")
+        utils_ui.setButtonIcon(self.max, btnIcons[1][0], "titleIconColor")
+        utils_ui.setButtonIcon(self.close, btnIcons[2], "titleIconColor")
+        utils_ui.setButtonIcon(self.top, btnIcons[3][0], "titleIconColor")
+        for button in (self.min, self.max, self.close, self.top):
+            button.setIconSize(QSize(16, 16))
         self.title = QLabel(title)
         widgets_l, widgets_r = widgets
         if sys.platform.startswith("darwin"):
@@ -127,9 +162,9 @@ class TitleBar(QWidget):
     def onSetMaximized(self, isMax = None, fromMaxBtn=False, fullScreen = False):
         if not isMax is None:
             if isMax:
-                utils_ui.setButtonIcon(self.max, self.btnIcons[1][1])
+                utils_ui.setButtonIcon(self.max, self.btnIcons[1][1], "titleIconColor")
             else:
-                utils_ui.setButtonIcon(self.max, self.btnIcons[1][0])
+                utils_ui.setButtonIcon(self.max, self.btnIcons[1][0], "titleIconColor")
             return
         status = Qt.WindowNoState
         if fullScreen:
@@ -141,9 +176,9 @@ class TitleBar(QWidget):
             else:
                 status = Qt.WindowMaximized
         if status == Qt.WindowNoState:
-            utils_ui.setButtonIcon(self.max, self.btnIcons[1][0])
+            utils_ui.setButtonIcon(self.max, self.btnIcons[1][0], "titleIconColor")
         else:
-            utils_ui.setButtonIcon(self.max, self.btnIcons[1][1])
+            utils_ui.setButtonIcon(self.max, self.btnIcons[1][1], "titleIconColor")
         self.parent.setWindowState(status)
         if status == Qt.WindowFullScreen:
             self.hide()
@@ -156,12 +191,12 @@ class TitleBar(QWidget):
         def _on(flags):
             flags |= Qt.WindowStaysOnTopHint
             self.parent.setWindowFlags(flags)
-            utils_ui.setButtonIcon(self.top, self.btnIcons[3][1])
+            utils_ui.setButtonIcon(self.top, self.btnIcons[3][1], "titleIconColor")
             self.top.setProperty("class", "topActive")
         def _off(flags):
             flags &=  (~Qt.WindowStaysOnTopHint)
             self.parent.setWindowFlags(flags)
-            utils_ui.setButtonIcon(self.top, self.btnIcons[3][0])
+            utils_ui.setButtonIcon(self.top, self.btnIcons[3][0], "titleIconColor")
             self.top.setProperty("class", "top")
         oldOn = flags & Qt.WindowStaysOnTopHint
         if on is None:
@@ -269,9 +304,11 @@ class EventFilter(QObject):
 
 
 class CustomTitleBarWindowMixin:
-    def __init__(self, titleBar = None, init = False, title = "", icon = os.path.join(parameters.assetsDir, "logo.png")):
+    def __init__(self, titleBar = None, init = False, title = "", icon = None):
         if not init:
             return
+        if icon is None:
+            icon = os.path.join(parameters.dataPath, parameters.appIcon)
         isQMainWindow = False
         for base in self.__class__.__bases__:
             if base == QMainWindow:
@@ -555,17 +592,23 @@ class statusBar(QWidget):
         super().__init__()
         self.rxTxCount = rxTxCount
         layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(12, 6, 12, 6)
+        layout.setSpacing(24)
         self.setLayout(layout)
-        self.msg = QLabel()
-        layout.addWidget(self.msg)
+        self.msg = QLabel(_("Disconnected"))
+        layout.addWidget(self.msg, 1)
         if rxTxCount:
-            self.rx = QLabel('{}({}): {}'.format(_("Received"), _("bytes"), 0))
-            self.tx = QLabel('{}({}): {}'.format(_("Sent"), _("bytes"), 0))
+            self.rx = QLabel('RX  0 B')
+            self.tx = QLabel('TX  0 B')
+            self.rx.setToolTip(_("Received") + " · " + _("bytes"))
+            self.tx.setToolTip(_("Sent") + " · " + _("bytes"))
+            self.rx.setProperty("class", "rxCounter")
+            self.tx.setProperty("class", "txCounter")
             layout.addWidget(self.tx)
             layout.addWidget(self.rx)
         self.updateUiSignal.connect(self._updateUi)
         self.setProperty("class", "statusBar")
+        self.setFixedHeight(34)
         self.rxCount = 0
         self.txCount = 0
 
@@ -581,14 +624,14 @@ class statusBar(QWidget):
         if not self.rxTxCount:
             return
         self.rxCount += count
-        msg = '{}({}): {}'.format(_("Received"), _("bytes"), self.rxCount)
+        msg = 'RX  {:,} B'.format(self.rxCount)
         self.updateUiSignal.emit("rx", msg)
 
     def addTx(self, count):
         if not self.rxTxCount:
             return
         self.txCount += count
-        msg = '{}({}): {}'.format(_("Sent"), _("bytes"), self.txCount)
+        msg = 'TX  {:,} B'.format(self.txCount)
         self.updateUiSignal.emit("tx", msg)
 
     def clear(self):
@@ -666,7 +709,7 @@ class EditRemarDialog(QDialog):
             self.valueInput = QLineEdit(self.value)
         self.iconBtn = QPushButton(self.remark)
         if self.icon:
-            self.iconBtn.setIcon(qta.icon(self.icon, color="white"))
+            self.iconBtn.setIcon(utils_ui.makeIcon(self.icon, color="white"))
         if self.shortcut:
             name = "+".join([str(name) for v,name in self.shortcut])
         else:
@@ -704,7 +747,7 @@ class EditRemarDialog(QDialog):
     def selectIcon(self):
         self.icon = selectIcon(parent = self, title = _("Select icon"), btnName = _("OK"), color = utils_ui.getStyleVar("iconSelectorColor"))
         if self.icon:
-            self.iconBtn.setIcon(qta.icon(self.icon, color="white"))
+            self.iconBtn.setIcon(utils_ui.makeIcon(self.icon, color="white"))
         else:
             self.iconBtn.setIcon(QIcon())
 

@@ -1,3 +1,6 @@
+# Modified for leon-2050/ComTool on 2026-10-13.
+# Derived from https://github.com/Neutree/COMTool; original copyright retained.
+# Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING.
 # Chinese (Traditional, Taiwan) translations for PROJECT.
 # Copyright (C) 2021 ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
@@ -606,7 +609,7 @@ msgstr "清除歷史"
 
 #: plugins/dbg.py:263
 msgid "Font Size"
-msgstr ""
+msgstr "字體大小"
 
 #: plugins/dbg.py:276
 msgid "Save log"
@@ -1043,3 +1046,313 @@ msgstr ""
 #~ msgid "Sendding File"
 #~ msgstr "發送文件中"
 
+
+
+#. Desktop interface
+msgid "Receive"
+msgstr "接收"
+
+
+#. Desktop interface
+msgid "Send history"
+msgstr "傳送歷史"
+
+
+#. Desktop interface
+msgid "Waiting for incoming data…"
+msgstr "等待接收資料…"
+
+
+#. Desktop interface
+msgid "Enter data to send · Ctrl+Enter"
+msgstr "輸入要傳送的資料 · Ctrl+Enter"
+
+
+#. Desktop interface
+msgid "Show / hide connection settings"
+msgstr "顯示 / 隱藏連線設定"
+
+
+#. Desktop interface
+msgid "Show / hide tools"
+msgstr "顯示 / 隱藏工具"
+
+
+#. Desktop interface
+msgid "Appearance"
+msgstr "外觀"
+
+
+#. Desktop interface
+msgid "Language"
+msgstr "語言"
+
+
+#. Desktop interface
+msgid "Add plugin tab"
+msgstr "新增外掛分頁"
+
+
+#. Desktop interface
+msgid "Sessions"
+msgstr "工作階段"
+
+
+#. Desktop interface
+msgid "Serial session"
+msgstr "新增串列工作階段"
+
+
+#. Desktop interface
+msgid "Network session"
+msgstr "新增網路工作階段"
+
+
+#. Desktop interface
+msgid "SSH terminal"
+msgstr "新增 SSH 終端"
+
+
+#. Desktop interface
+msgid "Close session"
+msgstr "關閉工作階段"
+
+
+#. Desktop interface
+msgid "Exit"
+msgstr "結束"
+
+
+#. Desktop interface
+msgid "View"
+msgstr "檢視"
+
+
+#. Desktop interface
+msgid "Session sidebar"
+msgstr "工作階段側欄"
+
+
+#. Desktop interface
+msgid "Connection settings"
+msgstr "連線設定"
+
+
+#. Desktop interface
+msgid "Tools"
+msgstr "工具"
+
+
+#. Desktop interface
+msgid "Plugins"
+msgstr "外掛"
+
+
+#. Desktop interface
+msgid "Settings"
+msgstr "設定"
+
+
+#. Desktop interface
+msgid "New session"
+msgstr "新增工作階段"
+
+
+#. Desktop interface
+msgid "Network"
+msgstr "網路"
+
+
+#. Desktop interface
+msgid "Terminal"
+msgstr "終端"
+
+
+#. Desktop interface
+msgid "Find a session…"
+msgstr "尋找工作階段…"
+
+
+#. Desktop interface
+msgid "Workspace sessions"
+msgstr "工作區工作階段"
+
+
+#. Studio interface
+msgid "Debug workspace"
+msgstr "偵錯工作台"
+
+
+#. Studio interface
+msgid "Ready to connect"
+msgstr "準備連線裝置"
+
+
+#. Studio interface
+msgid "Workspace menu"
+msgstr "工作區選單"
+
+
+#. Studio interface
+msgid "No port selected"
+msgstr "未選擇連接埠"
+
+
+#. Studio interface
+msgid "Receive monitor"
+msgstr "接收監視"
+
+
+#. Studio interface
+msgid "Compose data"
+msgstr "傳送編輯"
+
+
+#. Studio interface
+msgid "Copy received data"
+msgstr "複製接收區的全部內容"
+
+
+#. Studio interface
+msgid "Copy"
+msgstr "複製"
+
+
+#. Studio interface
+msgid "Options"
+msgstr "收發選項"
+
+
+#. Studio interface
+msgid "Inspector"
+msgstr "參數設定"
+
+
+#. Studio interface
+msgid "Close inspector"
+msgstr "關閉面板"
+
+
+#. Studio interface
+msgid "Text encoding"
+msgstr "文字編碼"
+
+
+#. Studio interface
+msgid "Open sessions"
+msgstr "已開啟"
+
+
+#. Studio interface
+msgid "open sessions"
+msgstr "個工作階段"
+
+
+#. Studio interface
+msgid "Session tools"
+msgstr "工作階段工具"
+
+
+#. Studio interface
+msgid "Select a port in connection settings"
+msgstr "請在連線設定中選擇串口"
+
+
+#. Studio interface
+msgid "No received data yet"
+msgstr "尚無接收資料"
+
+
+#. Studio interface
+msgid "Connect a device to see incoming data here"
+msgstr "連線裝置後，接收資料會顯示在這裡"
+
+
+#. Studio interface
+msgid "Connected. Incoming data will appear here"
+msgstr "已連線，等待裝置傳送資料"
+
+
+#. Studio interface
+msgid "Connecting to your device…"
+msgstr "正在連線裝置…"
+
+
+#. Studio interface
+msgid "Connection lost. Reconnect to continue receiving"
+msgstr "連線已中斷，重新連線後繼續接收"
+
+
+#. Studio interface
+msgid "Received data"
+msgstr "接收資料"
+
+
+#. Studio interface
+msgid "Data to send"
+msgstr "要傳送的資料"
+
+
+#. Studio interface
+msgid "Live incoming data"
+msgstr "即時接收裝置資料"
+
+
+#. Studio interface
+msgid "Receive display format"
+msgstr "接收顯示格式"
+
+
+#. Studio interface
+msgid "Prepare your next message"
+msgstr "編輯並傳送下一條訊息"
+
+
+#. Studio interface
+msgid "Send data format"
+msgstr "傳送資料格式"
+
+
+#. Studio interface
+msgid "Connect a device to enable sending"
+msgstr "連線裝置後即可傳送"
+
+
+#. Studio interface
+msgid "Text"
+msgstr "文字"
+
+
+#. Studio interface
+msgid "Ctrl+Enter to send"
+msgstr "Ctrl+Enter 傳送"
+
+
+#. Studio interface
+msgid "No active session"
+msgstr "沒有作用中工作階段"
+
+
+#. Studio interface
+msgid "Select or create a session"
+msgstr "從左側選擇或新增一個工作階段"
+
+
+#. Studio interface
+msgid "Enable logging"
+msgstr "啟用記錄"
+
+
+#. Studio interface
+msgid "Server"
+msgstr "伺服器"
+
+
+#. Terminal display options
+msgid "Keyword highlighting"
+msgstr "關鍵詞醒目提示"
+
+
+#. Terminal display options
+msgid "Highlight addresses, command options and status keywords without overriding command colors."
+msgstr "醒目顯示位址、命令參數和狀態關鍵詞，保留命令本身的色彩。"

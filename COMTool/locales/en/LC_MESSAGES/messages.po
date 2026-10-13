@@ -1,3 +1,6 @@
+# Modified for leon-2050/ComTool on 2026-10-13.
+# Derived from https://github.com/Neutree/COMTool; original copyright retained.
+# Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING.
 # English translations for PROJECT.
 # Copyright (C) 2021 ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
@@ -1063,3 +1066,313 @@ msgstr ""
 #~ msgid "Sendding File"
 #~ msgstr ""
 
+
+
+#. Desktop interface
+msgid "Receive"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Send history"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Waiting for incoming data…"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Enter data to send · Ctrl+Enter"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Show / hide connection settings"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Show / hide tools"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Appearance"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Language"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Add plugin tab"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Sessions"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Serial session"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Network session"
+msgstr ""
+
+
+#. Desktop interface
+msgid "SSH terminal"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Close session"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Exit"
+msgstr ""
+
+
+#. Desktop interface
+msgid "View"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Session sidebar"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Connection settings"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Tools"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Plugins"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Settings"
+msgstr ""
+
+
+#. Desktop interface
+msgid "New session"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Network"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Terminal"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Find a session…"
+msgstr ""
+
+
+#. Desktop interface
+msgid "Workspace sessions"
+msgstr ""
+
+
+#. Studio interface
+msgid "Debug workspace"
+msgstr ""
+
+
+#. Studio interface
+msgid "Ready to connect"
+msgstr ""
+
+
+#. Studio interface
+msgid "Workspace menu"
+msgstr ""
+
+
+#. Studio interface
+msgid "No port selected"
+msgstr ""
+
+
+#. Studio interface
+msgid "Receive monitor"
+msgstr ""
+
+
+#. Studio interface
+msgid "Compose data"
+msgstr ""
+
+
+#. Studio interface
+msgid "Copy received data"
+msgstr ""
+
+
+#. Studio interface
+msgid "Copy"
+msgstr ""
+
+
+#. Studio interface
+msgid "Options"
+msgstr ""
+
+
+#. Studio interface
+msgid "Inspector"
+msgstr ""
+
+
+#. Studio interface
+msgid "Close inspector"
+msgstr ""
+
+
+#. Studio interface
+msgid "Text encoding"
+msgstr ""
+
+
+#. Studio interface
+msgid "Open sessions"
+msgstr ""
+
+
+#. Studio interface
+msgid "open sessions"
+msgstr ""
+
+
+#. Studio interface
+msgid "Session tools"
+msgstr ""
+
+
+#. Studio interface
+msgid "Select a port in connection settings"
+msgstr ""
+
+
+#. Studio interface
+msgid "No received data yet"
+msgstr ""
+
+
+#. Studio interface
+msgid "Connect a device to see incoming data here"
+msgstr ""
+
+
+#. Studio interface
+msgid "Connected. Incoming data will appear here"
+msgstr ""
+
+
+#. Studio interface
+msgid "Connecting to your device…"
+msgstr ""
+
+
+#. Studio interface
+msgid "Connection lost. Reconnect to continue receiving"
+msgstr ""
+
+
+#. Studio interface
+msgid "Received data"
+msgstr ""
+
+
+#. Studio interface
+msgid "Data to send"
+msgstr ""
+
+
+#. Studio interface
+msgid "Live incoming data"
+msgstr ""
+
+
+#. Studio interface
+msgid "Receive display format"
+msgstr ""
+
+
+#. Studio interface
+msgid "Prepare your next message"
+msgstr ""
+
+
+#. Studio interface
+msgid "Send data format"
+msgstr ""
+
+
+#. Studio interface
+msgid "Connect a device to enable sending"
+msgstr ""
+
+
+#. Studio interface
+msgid "Text"
+msgstr ""
+
+
+#. Studio interface
+msgid "Ctrl+Enter to send"
+msgstr ""
+
+
+#. Studio interface
+msgid "No active session"
+msgstr ""
+
+
+#. Studio interface
+msgid "Select or create a session"
+msgstr ""
+
+
+#. Studio interface
+msgid "Enable logging"
+msgstr ""
+
+
+#. Studio interface
+msgid "Server"
+msgstr ""
+
+
+#. Terminal display options
+msgid "Keyword highlighting"
+msgstr "Keyword highlighting"
+
+
+#. Terminal display options
+msgid "Highlight addresses, command options and status keywords without overriding command colors."
+msgstr "Highlight addresses, command options and status keywords without overriding command colors."
