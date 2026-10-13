@@ -29,6 +29,7 @@
 - 插件按需加载，更新检查在主窗口显示后进行。
 - 显示名称及 Windows 可执行文件改为 **ComTool**，原配置目录保留。
 - 新增会话连接矢量图标、多尺寸 Windows 图标和统一的界面线稿图标。
+- 将断开连接图标改为分开的插头与插座，统一线宽并去掉零散装饰线。
 
 主要文件：`Main.py`、`logger.py`、`autoUpdate.py`、`plugins/__init__.py`、`ui_icons.py`、`assets/app-shell*.svg`、`assets/comtool.*`。
 
