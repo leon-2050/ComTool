@@ -1,0 +1,39 @@
+{
+  "boundary": "Chromium UI/terminal fixture rendering; no native I/O proof",
+  "checks": [
+    {
+      "dpr": 1,
+      "theme": "light/dark",
+      "tabsNoLayoutShift": true,
+      "terminalFixtureRendered": true,
+      "pageErrors": []
+    },
+    {
+      "dpr": 1.25,
+      "theme": "light/dark",
+      "tabsNoLayoutShift": true,
+      "terminalFixtureRendered": true,
+      "pageErrors": []
+    },
+    {
+      "dpr": 1.5,
+      "theme": "light/dark",
+      "tabsNoLayoutShift": true,
+      "terminalFixtureRendered": true,
+      "pageErrors": []
+    },
+    {
+      "dpr": 2,
+      "theme": "light/dark",
+      "tabsNoLayoutShift": true,
+      "terminalFixtureRendered": true,
+      "pageErrors": []
+    },
+    {
+      "compactDrawer": true,
+      "sidebarRestored": true,
+      "search": true,
+      "closeLastSession": true
+    }
+  ]
+}

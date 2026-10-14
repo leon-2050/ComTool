@@ -1,0 +1,103 @@
+{
+  "native": true,
+  "sessions": 8,
+  "allSessionsContinuouslyReceiving": true,
+  "durationSeconds": 60.0335351,
+  "bytes": 62914577,
+  "MiBPerSecond": 0.9994413938818671,
+  "rawLogSha256": "731931a0c2c4e01fbfb4d3e4b494e3a386cb46ccca87447a7b08cfc8fd43208e",
+  "rawLogMatches": true,
+  "fileTransferMatches": true,
+  "timerStops": true,
+  "statuses": [
+    {
+      "sessionId": "27d15da1-df5a-4ff9-b2b7-9d196aad199d",
+      "generation": 2,
+      "state": "connected",
+      "message": "已连接 127.0.0.1:50511",
+      "peers": [],
+      "rx": 1294353,
+      "tx": 1048593,
+      "dropped": 0
+    },
+    {
+      "sessionId": "5e464074-b1b7-4359-b766-2c2050386da3",
+      "generation": 3,
+      "state": "connected",
+      "message": "已连接 127.0.0.1:50512",
+      "peers": [],
+      "rx": 245813,
+      "tx": 53,
+      "dropped": 0
+    },
+    {
+      "sessionId": "5f1990fd-793d-4986-9343-cf6bf1eed29c",
+      "generation": 7,
+      "state": "connected",
+      "message": "已连接 127.0.0.1:50516",
+      "peers": [],
+      "rx": 245777,
+      "tx": 17,
+      "dropped": 0
+    },
+    {
+      "sessionId": "fb253c6d-237c-4e26-9b5e-234500267c17",
+      "generation": 1,
+      "state": "connected",
+      "message": "已连接 127.0.0.1:50510",
+      "peers": [],
+      "rx": 62914577,
+      "tx": 17,
+      "dropped": 0
+    },
+    {
+      "sessionId": "3f45a2b1-9851-4bd5-8562-9523e519b3f7",
+      "generation": 4,
+      "state": "connected",
+      "message": "已连接 127.0.0.1:50513",
+      "peers": [],
+      "rx": 245777,
+      "tx": 17,
+      "dropped": 0
+    },
+    {
+      "sessionId": "b4304035-a36c-479b-afc2-f49f921899e5",
+      "generation": 5,
+      "state": "connected",
+      "message": "已连接 127.0.0.1:50514",
+      "peers": [],
+      "rx": 245777,
+      "tx": 17,
+      "dropped": 0
+    },
+    {
+      "sessionId": "46f8e90a-fccc-45ea-a6bf-2a61b020695f",
+      "generation": 8,
+      "state": "connected",
+      "message": "已连接 127.0.0.1:50517",
+      "peers": [],
+      "rx": 245777,
+      "tx": 17,
+      "dropped": 0
+    },
+    {
+      "sessionId": "4040f808-ecf0-4448-a58a-f07a69dbd958",
+      "generation": 6,
+      "state": "connected",
+      "message": "已连接 127.0.0.1:50515",
+      "peers": [],
+      "rx": 245777,
+      "tx": 17,
+      "dropped": 0
+    }
+  ],
+  "uiInteractionMs": [
+    52.12970000000041,
+    51.69520000000011,
+    69.26109999999971,
+    49.28110000000015,
+    46.80500000000029,
+    18.767399999996996
+  ],
+  "consoleErrors": []
+}

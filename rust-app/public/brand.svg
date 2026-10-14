@@ -1,0 +1,10 @@
+<!-- Modified for leon-2050/ComTool on 2026-10-13.
+     Derived from https://github.com/Neutree/COMTool; original copyright retained.
+     Source remains under LGPLv3; see LICENSE, COPYING.LESSER and COPYING. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>ComTool 会话连接：多连接通信调试</title>
+  <rect x="3" y="3" width="58" height="58" rx="14" fill="#25374c"/>
+  <path d="M44 28h8q3 0 3 3v18q0 3-3 3H31q-3 0-3-3v-1" fill="none" stroke="#7ce1c9" stroke-width="4" stroke-linecap="round"/>
+  <rect x="9" y="12" width="33" height="31" rx="4" fill="none" stroke="#f4f8ff" stroke-width="4"/>
+  <path d="M16 22l6 6-6 6m12 0h7" fill="none" stroke="#f4f8ff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
