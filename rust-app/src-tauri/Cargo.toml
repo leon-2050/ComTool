@@ -1,0 +1,41 @@
+[package]
+name = "comtool-rust"
+version = "0.1.0"
+edition = "2024"
+license = "LGPL-3.0-only"
+description = "ComTool serial, network and SSH communication workbench"
+repository = "https://github.com/leon-2050/ComTool"
+
+[lib]
+name = "comtool_core"
+crate-type = ["lib"]
+
+[[bin]]
+name = "ComTool"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serialport = "4.10"
+russh = { version = "0.64", default-features = false, features = ["ring", "rsa", "flate2"] }
+keyring = { version = "3", features = ["windows-native"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+encoding_rs = "0.8"
+anyhow = "1"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Devices_Communication", "Win32_System_IO", "Win32_Globalization"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

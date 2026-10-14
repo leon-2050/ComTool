@@ -1,0 +1,13 @@
+{
+  "native": true,
+  "tcpTargetIsolation": true,
+  "broadcast": true,
+  "disconnectPeer": true,
+  "sourceIndexes": true,
+  "udpBytesExact": true,
+  "udpBoundariesIncludingEmpty": [
+    2,
+    1,
+    0
+  ]
+}

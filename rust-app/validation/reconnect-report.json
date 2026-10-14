@@ -1,0 +1,7 @@
+{
+  "native": true,
+  "automaticReconnect": true,
+  "oldAndNewStreamDecoderSeparated": true,
+  "rawLogPreserved": true,
+  "sshHandshakeCancellationMs": 59.991799999999785
+}
