@@ -4,6 +4,12 @@
 
 本修改版基于 [Neutree/COMTool](https://github.com/Neutree/COMTool) 的 `8dbf97d6502f33e51be60401f738c7ff6442eb9e`。修改保留原作者版权、LGPLv3 许可及上游历史。
 
+## Rust 预览版（2026-10-13 至 2026-10-14）
+
+在 `rust-rewrite` 分支的 `rust-app/` 添加独立 Rust + Tauri 2 应用，保留 Python 源码与上游提交历史。Rust/Tokio 实现串口、TCP 客户端/服务端、UDP 和 SSH；React 工作台及 xterm.js 提供收发与交互终端。新增有界显示缓冲、确认流控、原始记录、发送取消、主机指纹校验、Windows 凭据管理、旧配置导入与配置损坏恢复。沿用本修改版图标和关键词规则，未使用 MobaXterm 代码或资源。
+
+补充 Windows 构建脚本、NSIS 安装包、免安装包、锁定依赖与许可文本。详见 `rust-app/README.md`、`rust-app/VALIDATION.md` 和 `rust-app/src-tauri/licenses/RUST-NOTICE.md`。此版本仍为预览版；硬件串口、Windows 10 实机与更完整的终端交互验收尚待完成。
+
 ## 通信工作台
 
 - 重做浅色与深色主题，增加左侧会话列表、顶部连接状态和右侧配置抽屉。

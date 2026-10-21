@@ -1,0 +1,405 @@
+{
+  "scenario": "one disconnected serial receive session, light theme, real Windows GUI; first cold sample separate, same profile reused for 20 starts",
+  "measurement": "process spawn until UI ready marker; Python marker includes a 50ms timer, Rust marker follows frontend initialization; polling 10ms",
+  "memoryNote": "sum of working sets includes shared pages more than once; private bytes also reported",
+  "results": {
+    "python": {
+      "coldFirst": {
+        "sample": 0,
+        "seconds": 4.398469000007026,
+        "workingSetBytes": 103968768,
+        "privateBytes": 66777088,
+        "startupCpuSeconds": 1.390625,
+        "idleCpuPercentOneCore": 21.875,
+        "processCount": 1
+      },
+      "samples": [
+        {
+          "sample": 1,
+          "seconds": 1.2821366999996826,
+          "workingSetBytes": 103657472,
+          "privateBytes": 66236416,
+          "startupCpuSeconds": 0.625,
+          "idleCpuPercentOneCore": 0.0,
+          "processCount": 1
+        },
+        {
+          "sample": 2,
+          "seconds": 1.2465637000277638,
+          "workingSetBytes": 103727104,
+          "privateBytes": 66387968,
+          "startupCpuSeconds": 0.640625,
+          "idleCpuPercentOneCore": 3.125,
+          "processCount": 1
+        },
+        {
+          "sample": 3,
+          "seconds": 1.5214866999885999,
+          "workingSetBytes": 103796736,
+          "privateBytes": 66658304,
+          "startupCpuSeconds": 0.703125,
+          "idleCpuPercentOneCore": 6.25,
+          "processCount": 1
+        },
+        {
+          "sample": 4,
+          "seconds": 1.696808599983342,
+          "workingSetBytes": 104042496,
+          "privateBytes": 66916352,
+          "startupCpuSeconds": 0.734375,
+          "idleCpuPercentOneCore": 3.125,
+          "processCount": 1
+        },
+        {
+          "sample": 5,
+          "seconds": 1.8964130000094883,
+          "workingSetBytes": 103829504,
+          "privateBytes": 66879488,
+          "startupCpuSeconds": 0.828125,
+          "idleCpuPercentOneCore": 3.125,
+          "processCount": 1
+        },
+        {
+          "sample": 6,
+          "seconds": 1.9551262999884784,
+          "workingSetBytes": 103706624,
+          "privateBytes": 66560000,
+          "startupCpuSeconds": 0.734375,
+          "idleCpuPercentOneCore": 0.0,
+          "processCount": 1
+        },
+        {
+          "sample": 7,
+          "seconds": 1.9063894000137225,
+          "workingSetBytes": 104235008,
+          "privateBytes": 67141632,
+          "startupCpuSeconds": 0.78125,
+          "idleCpuPercentOneCore": 3.125,
+          "processCount": 1
+        },
+        {
+          "sample": 8,
+          "seconds": 1.3981812000274658,
+          "workingSetBytes": 104230912,
+          "privateBytes": 66740224,
+          "startupCpuSeconds": 0.78125,
+          "idleCpuPercentOneCore": 0.0,
+          "processCount": 1
+        },
+        {
+          "sample": 9,
+          "seconds": 1.3193682000273839,
+          "workingSetBytes": 104095744,
+          "privateBytes": 66764800,
+          "startupCpuSeconds": 0.734375,
+          "idleCpuPercentOneCore": 0.0,
+          "processCount": 1
+        },
+        {
+          "sample": 10,
+          "seconds": 1.87163219996728,
+          "workingSetBytes": 103755776,
+          "privateBytes": 66641920,
+          "startupCpuSeconds": 0.6875,
+          "idleCpuPercentOneCore": 0.0,
+          "processCount": 1
+        },
+        {
+          "sample": 11,
+          "seconds": 1.5698055000393651,
+          "workingSetBytes": 103817216,
+          "privateBytes": 66633728,
+          "startupCpuSeconds": 0.78125,
+          "idleCpuPercentOneCore": 0.0,
+          "processCount": 1
+        },
+        {
+          "sample": 12,
+          "seconds": 1.2037985000060871,
+          "workingSetBytes": 103632896,
+          "privateBytes": 66306048,
+          "startupCpuSeconds": 0.734375,
+          "idleCpuPercentOneCore": 3.125,
+          "processCount": 1
+        },
+        {
+          "sample": 13,
+          "seconds": 1.43931829999201,
+          "workingSetBytes": 103919616,
+          "privateBytes": 66600960,
+          "startupCpuSeconds": 0.6875,
+          "idleCpuPercentOneCore": 0.0,
+          "processCount": 1
+        },
+        {
+          "sample": 14,
+          "seconds": 1.2278559999540448,
+          "workingSetBytes": 103706624,
+          "privateBytes": 66314240,
+          "startupCpuSeconds": 0.65625,
+          "idleCpuPercentOneCore": 3.125,
+          "processCount": 1
+        },
+        {
+          "sample": 15,
+          "seconds": 1.2573855999507941,
+          "workingSetBytes": 103903232,
+          "privateBytes": 66535424,
+          "startupCpuSeconds": 0.65625,
+          "idleCpuPercentOneCore": 3.125,
+          "processCount": 1
+        },
+        {
+          "sample": 16,
+          "seconds": 1.3000873000128195,
+          "workingSetBytes": 104185856,
+          "privateBytes": 66658304,
+          "startupCpuSeconds": 0.65625,
+          "idleCpuPercentOneCore": 0.0,
+          "processCount": 1
+        },
+        {
+          "sample": 17,
+          "seconds": 1.5826834999606945,
+          "workingSetBytes": 103710720,
+          "privateBytes": 66252800,
+          "startupCpuSeconds": 0.65625,
+          "idleCpuPercentOneCore": 0.0,
+          "processCount": 1
+        },
+        {
+          "sample": 18,
+          "seconds": 1.5390782000031322,
+          "workingSetBytes": 103698432,
+          "privateBytes": 66564096,
+          "startupCpuSeconds": 0.625,
+          "idleCpuPercentOneCore": 3.125,
+          "processCount": 1
+        },
+        {
+          "sample": 19,
+          "seconds": 1.7872549999738112,
+          "workingSetBytes": 104038400,
+          "privateBytes": 66895872,
+          "startupCpuSeconds": 0.65625,
+          "idleCpuPercentOneCore": 3.125,
+          "processCount": 1
+        },
+        {
+          "sample": 20,
+          "seconds": 1.7307029999792576,
+          "workingSetBytes": 103809024,
+          "privateBytes": 66732032,
+          "startupCpuSeconds": 0.671875,
+          "idleCpuPercentOneCore": 3.125,
+          "processCount": 1
+        }
+      ],
+      "medianSeconds": 1.530282449995866,
+      "p95Seconds": 1.9063894000137225,
+      "medianWorkingSetBytes": 103813120.0,
+      "medianPrivateBytes": 66637824.0,
+      "medianIdleCpuPercentOneCore": 3.125
+    },
+    "rust": {
+      "coldFirst": {
+        "sample": 0,
+        "seconds": 0.6610868999850936,
+        "workingSetBytes": 455888896,
+        "privateBytes": 254791680,
+        "startupCpuSeconds": 1.359375,
+        "idleCpuPercentOneCore": 9.375,
+        "processCount": 7
+      },
+      "samples": [
+        {
+          "sample": 1,
+          "seconds": 0.47360779996961355,
+          "workingSetBytes": 480616448,
+          "privateBytes": 284229632,
+          "startupCpuSeconds": 1.390625,
+          "idleCpuPercentOneCore": 0.0,
+          "processCount": 7
+        },
+        {
+          "sample": 2,
+          "seconds": 0.48101330001372844,
+          "workingSetBytes": 467738624,
+          "privateBytes": 273522688,
+          "startupCpuSeconds": 1.03125,
+          "idleCpuPercentOneCore": 6.25,
+          "processCount": 7
+        },
+        {
+          "sample": 3,
+          "seconds": 0.476061099965591,
+          "workingSetBytes": 467156992,
+          "privateBytes": 272162816,
+          "startupCpuSeconds": 1.171875,
+          "idleCpuPercentOneCore": 0.0,
+          "processCount": 7
+        },
+        {
+          "sample": 4,
+          "seconds": 0.4545887000276707,
+          "workingSetBytes": 462557184,
+          "privateBytes": 268046336,
+          "startupCpuSeconds": 1.203125,
+          "idleCpuPercentOneCore": 9.375,
+          "processCount": 7
+        },
+        {
+          "sample": 5,
+          "seconds": 0.5984366000047885,
+          "workingSetBytes": 485318656,
+          "privateBytes": 290643968,
+          "startupCpuSeconds": 1.40625,
+          "idleCpuPercentOneCore": 0.0,
+          "processCount": 7
+        },
+        {
+          "sample": 6,
+          "seconds": 0.543178700027056,
+          "workingSetBytes": 484470784,
+          "privateBytes": 290058240,
+          "startupCpuSeconds": 1.3125,
+          "idleCpuPercentOneCore": 9.375,
+          "processCount": 7
+        },
+        {
+          "sample": 7,
+          "seconds": 0.5579332000343129,
+          "workingSetBytes": 499421184,
+          "privateBytes": 305283072,
+          "startupCpuSeconds": 1.421875,
+          "idleCpuPercentOneCore": 15.625,
+          "processCount": 7
+        },
+        {
+          "sample": 8,
+          "seconds": 0.5361632999847643,
+          "workingSetBytes": 484483072,
+          "privateBytes": 291065856,
+          "startupCpuSeconds": 1.4375,
+          "idleCpuPercentOneCore": 3.125,
+          "processCount": 7
+        },
+        {
+          "sample": 9,
+          "seconds": 0.6343781999894418,
+          "workingSetBytes": 486055936,
+          "privateBytes": 292986880,
+          "startupCpuSeconds": 1.578125,
+          "idleCpuPercentOneCore": 0.0,
+          "processCount": 7
+        },
+        {
+          "sample": 10,
+          "seconds": 0.5739978000055999,
+          "workingSetBytes": 483241984,
+          "privateBytes": 288907264,
+          "startupCpuSeconds": 1.671875,
+          "idleCpuPercentOneCore": 3.125,
+          "processCount": 7
+        },
+        {
+          "sample": 11,
+          "seconds": 0.5629163000266999,
+          "workingSetBytes": 484872192,
+          "privateBytes": 290701312,
+          "startupCpuSeconds": 1.359375,
+          "idleCpuPercentOneCore": 0.0,
+          "processCount": 7
+        },
+        {
+          "sample": 12,
+          "seconds": 0.5570770999765955,
+          "workingSetBytes": 482607104,
+          "privateBytes": 289218560,
+          "startupCpuSeconds": 1.484375,
+          "idleCpuPercentOneCore": 15.625,
+          "processCount": 7
+        },
+        {
+          "sample": 13,
+          "seconds": 0.5195075999945402,
+          "workingSetBytes": 467509248,
+          "privateBytes": 273321984,
+          "startupCpuSeconds": 1.34375,
+          "idleCpuPercentOneCore": 12.5,
+          "processCount": 7
+        },
+        {
+          "sample": 14,
+          "seconds": 0.559954900003504,
+          "workingSetBytes": 482091008,
+          "privateBytes": 287723520,
+          "startupCpuSeconds": 1.296875,
+          "idleCpuPercentOneCore": 0.0,
+          "processCount": 7
+        },
+        {
+          "sample": 15,
+          "seconds": 0.5675455000018701,
+          "workingSetBytes": 491630592,
+          "privateBytes": 294428672,
+          "startupCpuSeconds": 1.3125,
+          "idleCpuPercentOneCore": 6.25,
+          "processCount": 7
+        },
+        {
+          "sample": 16,
+          "seconds": 0.5778728000004776,
+          "workingSetBytes": 487485440,
+          "privateBytes": 290955264,
+          "startupCpuSeconds": 1.546875,
+          "idleCpuPercentOneCore": 6.25,
+          "processCount": 7
+        },
+        {
+          "sample": 17,
+          "seconds": 0.5856958000222221,
+          "workingSetBytes": 485113856,
+          "privateBytes": 291872768,
+          "startupCpuSeconds": 1.640625,
+          "idleCpuPercentOneCore": 0.0,
+          "processCount": 7
+        },
+        {
+          "sample": 18,
+          "seconds": 0.5456592999980785,
+          "workingSetBytes": 485167104,
+          "privateBytes": 290799616,
+          "startupCpuSeconds": 1.40625,
+          "idleCpuPercentOneCore": 9.375,
+          "processCount": 7
+        },
+        {
+          "sample": 19,
+          "seconds": 0.5647802999592386,
+          "workingSetBytes": 480325632,
+          "privateBytes": 285728768,
+          "startupCpuSeconds": 1.34375,
+          "idleCpuPercentOneCore": 15.625,
+          "processCount": 7
+        },
+        {
+          "sample": 20,
+          "seconds": 0.6905571999959648,
+          "workingSetBytes": 485650432,
+          "privateBytes": 291414016,
+          "startupCpuSeconds": 1.84375,
+          "idleCpuPercentOneCore": 0.0,
+          "processCount": 7
+        }
+      ],
+      "medianSeconds": 0.5589440500189085,
+      "p95Seconds": 0.6343781999894418,
+      "medianWorkingSetBytes": 484476928.0,
+      "medianPrivateBytes": 290351104.0,
+      "medianIdleCpuPercentOneCore": 4.6875
+    }
+  },
+  "medianReduction": 0.6347445205161841,
+  "startupTargetMet": true
+}

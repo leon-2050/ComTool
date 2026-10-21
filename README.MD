@@ -2,6 +2,8 @@
 
 串口、TCP/UDP 与 SSH 通信调试工作台，提供收发、交互终端、协议与图表插件。
 
+**Rust 预览版**：新的 Windows 通信工作台在 `rust-rewrite` 分支的 [`rust-app/`](https://github.com/leon-2050/ComTool/tree/rust-rewrite/rust-app) 开发。支持串口、TCP/UDP、多会话与 SSH；Python 版继续保留。构建和功能说明见 [Rust 说明](rust-app/README.md)，实际验证与性能边界见 [测试报告](rust-app/VALIDATION.md)。协议、图表和外部 Python 插件仍由 Python 版提供。
+
 > **来源与许可**：本项目是在 [Neutree/COMTool](https://github.com/Neutree/COMTool) 基础上修改的独立维护版本，原作者为 **Neucrack**。保留上游 Git 历史和版权通知，项目源码与本次修改沿用 **LGPLv3**。修改基准为 [`8dbf97d`](https://github.com/Neutree/COMTool/commit/8dbf97d6502f33e51be60401f738c7ff6442eb9e)，上游版本 3.4.1；修改日期为 **2026-10-12 至 2026-10-13**。详见 [来源声明](NOTICE.md)、[修改记录](MODIFICATIONS.md) 和 [原许可证](LICENSE)。
 
 ![ComTool 浅色通信工作台](docs/images/workbench-light.png)

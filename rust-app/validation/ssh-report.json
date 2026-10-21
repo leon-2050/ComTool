@@ -1,0 +1,118 @@
+{
+  "native": true,
+  "results": [
+    {
+      "case": "密码认证",
+      "rawANSI": true,
+      "Chinese": true,
+      "echo": true
+    },
+    {
+      "case": "私钥认证",
+      "rawANSI": true,
+      "Chinese": true,
+      "echo": true
+    },
+    {
+      "case": "加密私钥",
+      "rawANSI": true,
+      "Chinese": true,
+      "echo": true
+    },
+    {
+      "case": "拒绝PTY",
+      "rejectionVisible": true
+    }
+  ],
+  "hostKeyConfirmedAndRemembered": true,
+  "changedHostKeyRejectedBeforeAuth": true,
+  "term": "xterm-256color",
+  "resizeVerified": true,
+  "passwordExcludedFromProfile": true,
+  "events": [
+    {
+      "auth": "password",
+      "ok": true
+    },
+    {
+      "pty": "xterm-256color",
+      "cols": 80,
+      "rows": 24,
+      "rejected": false
+    },
+    {
+      "resize": [
+        82,
+        31
+      ]
+    },
+    {
+      "resize": [
+        120,
+        42
+      ]
+    },
+    {
+      "auth": "publickey",
+      "ok": true
+    },
+    {
+      "auth": "publickey",
+      "ok": true
+    },
+    {
+      "pty": "xterm-256color",
+      "cols": 80,
+      "rows": 24,
+      "rejected": false
+    },
+    {
+      "resize": [
+        82,
+        31
+      ]
+    },
+    {
+      "resize": [
+        120,
+        42
+      ]
+    },
+    {
+      "auth": "publickey",
+      "ok": true
+    },
+    {
+      "auth": "publickey",
+      "ok": true
+    },
+    {
+      "pty": "xterm-256color",
+      "cols": 80,
+      "rows": 24,
+      "rejected": false
+    },
+    {
+      "resize": [
+        82,
+        31
+      ]
+    },
+    {
+      "resize": [
+        120,
+        42
+      ]
+    },
+    {
+      "auth": "password",
+      "ok": true
+    },
+    {
+      "pty": "xterm-256color",
+      "cols": 80,
+      "rows": 24,
+      "rejected": true
+    }
+  ]
+}
