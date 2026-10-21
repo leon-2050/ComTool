@@ -30,9 +30,25 @@ impl Default for SessionConfig {
     }}
 }
 impl SessionConfig {
+    // Only connection fields may be staged; display/history/recording keep their existing lifecycle.
+    pub fn with_connection(&self, other: &Self) -> Self {
+        let mut value=self.clone();
+        value.kind=other.kind.clone();value.host=other.host.clone();value.port=other.port;
+        value.bind_host=other.bind_host.clone();value.bind_port=other.bind_port;value.server=other.server&&["tcp","udp"].contains(&other.kind.as_str());
+        value.device=other.device.clone();value.baud=other.baud;value.data_bits=other.data_bits;
+        value.parity=other.parity.clone();value.stop_bits=other.stop_bits.clone();value.flow=other.flow.clone();
+        value.rts=other.rts;value.dtr=other.dtr;value.user=other.user.clone();value.key_file=other.key_file.clone();
+        value.remember_secret=other.remember_secret;value.reconnect=other.reconnect;value.reconnect_interval=other.reconnect_interval;
+        value
+    }
+    pub fn same_ssh_identity(&self, other: &Self) -> bool {
+        self.kind=="ssh"&&other.kind=="ssh"&&self.host==other.host&&self.port==other.port&&self.user==other.user&&self.key_file==other.key_file
+    }
     pub fn validate(&self) -> Result<(), String> {
         if !["serial", "tcp", "udp", "ssh"].contains(&self.kind.as_str()) { return Err("未知连接类型".into()); }
         if self.id.is_empty() || self.name.trim().is_empty() { return Err("会话 ID 和名称不能为空".into()); }
+        if self.kind=="serial"&&self.device.trim().is_empty(){return Err("请选择串口设备".into());}
+        if self.kind!="serial"&&(!self.server||self.kind=="ssh"||self.kind=="udp")&&self.host.trim().is_empty(){return Err("目标地址不能为空".into());}
         if !(5..=8).contains(&self.data_bits) || self.baud == 0 { return Err("无效串口参数".into()); }
         if !["none", "odd", "even", "mark", "space"].contains(&self.parity.as_str()) || !["1", "1.5", "2"].contains(&self.stop_bits.as_str()) || !["none", "software", "hardware", "dsrdtr"].contains(&self.flow.as_str()) { return Err("无效串口校验、停止位或流控".into()); }
         if self.kind == "ssh" && (self.user.trim().is_empty() || self.port == 0) { return Err("SSH 用户和端口不能为空".into()); }
@@ -113,6 +129,16 @@ pub fn encode_text(text: &str, encoding: &str) -> Result<Vec<u8>, String> {
 
 #[cfg(test)] mod tests {
     use super::*;
+    #[test]fn staged_connection_preserves_non_connection_fields(){
+        let mut current=SessionConfig::default();current.name="keep".into();current.history=vec!["history".into()];current.log_path="keep.bin".into();current.font_size=20;
+        let mut draft=SessionConfig::default();draft.baud=9600;draft.device="COM3".into();
+        let merged=current.with_connection(&draft);merged.validate().unwrap();assert_eq!(merged.baud,9600);assert_eq!(merged.id,current.id);assert_eq!(merged.name,"keep");assert_eq!(merged.history,current.history);assert_eq!(merged.log_path,"keep.bin");assert_eq!(merged.font_size,20);
+        draft.kind="ssh".into();draft.server=true;assert!(!current.with_connection(&draft).server);
+        draft.baud=0;assert!(current.with_connection(&draft).validate().is_err());
+    }
+    #[test]fn credential_identity_includes_endpoint_user_and_key(){
+        let mut old=SessionConfig::default();old.kind="ssh".into();old.user="qa".into();let mut next=old.clone();next.remember_secret=false;assert!(old.same_ssh_identity(&next));next.port=2222;assert!(!old.same_ssh_identity(&next));
+    }
     #[test] fn exact_hex_and_escape() {
         let mut c = SessionConfig::default(); c.send_hex = true;
         assert_eq!(encode_input("00 ff 31", &c).unwrap(), vec![0,255,49]);

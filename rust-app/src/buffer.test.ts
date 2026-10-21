@@ -14,6 +14,12 @@ describe('raw data display',()=>{
   it('resets decoder at UDP boundaries',()=>{
     const b=new ReceiveBuffer();b.append({...frame([0xe4,0xb8]),datagram:true});b.append({...frame([0xad]),datagram:true});expect(b.rows.map(r=>r.text).join('')).not.toContain('中');
   });
+  it('retains history without joining bytes or replaying a previous connection',()=>{
+    const b=new ReceiveBuffer();b.append({...frame([0xe4,0xb8]),generation:1});b.resetDecoders();b.append({...frame([0xad,65]),generation:2});
+    expect(b.rows).toHaveLength(2);expect(b.rows.map(r=>r.text).join('')).not.toContain('中');
+    b.setEncoding('ASCII');b.setEncoding('UTF-8');expect(b.rows.map(r=>r.text).join('')).not.toContain('中');
+    expect(b.rows.filter(r=>r.epoch===b.epoch).map(r=>[...r.bytes])).toEqual([[0xad,65]]);
+  });
   it('keeps exact 8 MiB bound and visibly counts removed bytes',()=>{
     const b=new ReceiveBuffer();const bytes=Array(65536).fill(65);for(let n=0;n<130;n++)b.append(frame(bytes));expect(b.size).toBe(BUFFER_LIMIT);expect(b.rows).toHaveLength(128);expect(b.trimmed).toBe(131072);b.clear();expect(b.size).toBe(0);expect(b.rows).toHaveLength(0);
   });

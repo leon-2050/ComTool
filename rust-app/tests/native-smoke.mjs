@@ -16,12 +16,16 @@ try{
   for(;;){try{await fs.access(ready);break}catch{}if(performance.now()-start>25000)throw new Error('Native startup readiness timed out');await new Promise(r=>setTimeout(r,50));}
   const seconds=(performance.now()-start)/1000;browser=await chromium.connectOverCDP('http://127.0.0.1:9223');const page=browser.contexts()[0].pages()[0];
   await page.getByRole('heading',{name:'串口收发',exact:true}).waitFor();
+  const appUrl=page.url();if(appUrl.startsWith('http://127.0.0.1:1420'))throw new Error('Desktop package is using the development server instead of embedded assets');
+  const devHooks=await page.evaluate(()=>!!window.__COMTOOL_QA);if(devHooks)throw new Error('Development hooks must not be present in the desktop package');
   const native=await page.evaluate(()=>!!window.__TAURI_INTERNALS__);if(!native)throw new Error('The page is not the native Tauri application');
+  if(await page.getByRole('button',{name:'连接配置',exact:true}).count())throw new Error('Redundant configuration button must be removed');
+  await page.getByRole('combobox',{name:'串口设备',exact:true}).waitFor();
   const boot=await page.evaluate(()=>window.__TAURI_INTERNALS__.invoke('bootstrap'));
   const ports=await page.evaluate(()=>window.__TAURI_INTERNALS__.invoke('list_ports'));
   await page.screenshot({path:path.join(output,'native-light.png')});
-  await page.getByRole('button',{name:'连接配置',exact:true}).click();await page.screenshot({path:path.join(output,'native-config.png')});
-  const report={native:true,seconds,sessionCount:boot.profile.sessions.length,portsEnumerated:ports.length,errors:boot.startupError};
+  if(!await page.locator('.drawer').isVisible())throw new Error('Connection settings must remain visible');await page.screenshot({path:path.join(output,'native-config.png')});
+  const report={native:true,appUrl,embeddedAssets:true,devHooks,seconds,sessionCount:boot.profile.sessions.length,portsEnumerated:ports.length,errors:boot.startupError};
   await fs.writeFile(path.join(output,'native-smoke.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));
   await page.evaluate(()=>window.__TAURI_INTERNALS__.invoke('plugin:window|close',{label:'main'})).catch(e=>{if(!String(e).includes('has been closed'))throw e});
   await Promise.race([exited,new Promise((_,reject)=>{const timer=setTimeout(()=>reject(new Error('Native close timed out')),10000);timer.unref()})]);

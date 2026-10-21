@@ -7,7 +7,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
 import {defaultProfile,defaultSession} from '../src/types.ts';
-const output=path.resolve('../../outputs/rust-network');await fs.mkdir(output,{recursive:true});
+const output=path.resolve(process.env.COMTOOL_NETWORK_OUTPUT||'../../outputs/rust-network');await fs.mkdir(output,{recursive:true});
 const root=path.join(output,`run-${Date.now()}`);await fs.mkdir(root,{recursive:true});
 const seconds=Number(process.env.COMTOOL_STRESS_SECONDS||600);
 const parallel=process.env.COMTOOL_AUX_TRAFFIC==='1';
@@ -18,7 +18,7 @@ for(let n=0;n<8;n++){
   const s=defaultSession('tcp');s.name=`TCP ${n+1}`;s.port=server.address().port;s.logPath=path.join(root,`rx-${n}.bin`);p.sessions.push(s);
 }
 p.activeId=p.sessions[0].id;await fs.writeFile(path.join(root,'config.json'),JSON.stringify(p));
-const ready=path.join(root,'ready');const child=spawn(path.resolve('../../work/rust-target/release/ComTool.exe'),[],{windowsHide:true,env:{...process.env,COMTOOL_RUST_PROFILE:root,COMTOOL_RUST_READY_FILE:ready,WEBVIEW2_USER_DATA_FOLDER:path.join(root,'webview'),WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:'--remote-debugging-port=9224 --disable-background-timer-throttling'}});
+const ready=path.join(root,'ready');const child=spawn(path.resolve(process.env.COMTOOL_BINARY||'../../work/rust-target/release/ComTool.exe'),[],{windowsHide:true,env:{...process.env,COMTOOL_RUST_PROFILE:root,COMTOOL_RUST_READY_FILE:ready,WEBVIEW2_USER_DATA_FOLDER:path.join(root,'webview'),WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:'--remote-debugging-port=9224 --disable-background-timer-throttling'}});
 const exited=new Promise(resolve=>child.once('exit',resolve));let browser;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 try{

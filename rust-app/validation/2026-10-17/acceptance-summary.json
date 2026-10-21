@@ -1,0 +1,218 @@
+{
+  "date": "2026-10-17",
+  "commit": "d6e4ac866b6f892a8bce14bab7034d6031adcc91",
+  "tag": "rust-v0.1.0-preview.1",
+  "artifact": {
+    "Matches": true,
+    "Artifact": "ComToolRust_0.1.0-preview.1_windows-x64-portable.zip",
+    "SHA256": "27132a77ba8924849f53b9ef0a6f74d939fd10a966715e141a3e0d8ef610605e"
+  },
+  "frontend": {
+    "unitTests": 6,
+    "unitTestsPassed": true,
+    "productionBuildPassed": true,
+    "browserChecks": 5,
+    "browserChecksPassed": true,
+    "terminalContentProbePassed": true,
+    "boundary": "Browser fixture tests do not prove native IME or physical monitor behavior"
+  },
+  "nativeSuite": [
+    {
+      "name": "native-smoke",
+      "start": "2026-10-17T08:26:55.821Z",
+      "end": "2026-10-17T08:26:58.831Z",
+      "exitCode": 0,
+      "passed": true
+    },
+    {
+      "name": "native-server-udp",
+      "start": "2026-10-17T08:26:58.841Z",
+      "end": "2026-10-17T08:27:16.641Z",
+      "exitCode": 0,
+      "passed": true
+    },
+    {
+      "name": "native-reconnect",
+      "start": "2026-10-17T08:27:16.642Z",
+      "end": "2026-10-17T08:27:34.949Z",
+      "exitCode": 0,
+      "passed": true
+    },
+    {
+      "name": "native-ssh",
+      "start": "2026-10-17T08:27:34.951Z",
+      "end": "2026-10-17T08:27:57.242Z",
+      "exitCode": 0,
+      "passed": true
+    },
+    {
+      "name": "native-writefail",
+      "start": "2026-10-17T08:27:57.242Z",
+      "end": "2026-10-17T08:28:11.855Z",
+      "exitCode": 0,
+      "passed": true
+    },
+    {
+      "name": "native-network",
+      "start": "2026-10-17T08:28:11.856Z",
+      "end": "2026-10-17T08:38:31.338Z",
+      "exitCode": 0,
+      "passed": true
+    }
+  ],
+  "network": {
+    "durationSeconds": 600.0138183,
+    "bytes": 629145617,
+    "MiBPerSecond": 0.9999769700303917,
+    "sessions": 8,
+    "allSessionsContinuouslyReceiving": true,
+    "dropped": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "rawLogMatches": true,
+    "fileTransferMatches": true,
+    "timerStops": true,
+    "consoleErrors": []
+  },
+  "perSessionIntegrity": [
+    {
+      "session": 1,
+      "bytes": 629145617,
+      "actualSha256": "5b1d17251b127164ca361967c85538b9e21854a00464449f68dc8d082b097588",
+      "expectedSha256": "5b1d17251b127164ca361967c85538b9e21854a00464449f68dc8d082b097588",
+      "matches": true,
+      "indexContiguousAndComplete": true,
+      "indexRows": 9606
+    },
+    {
+      "session": 2,
+      "bytes": 3506193,
+      "actualSha256": "faaab2eb0c5e6add9c7268f1687907ac279387a17658ef043e7d3d8c86e165b9",
+      "expectedSha256": "faaab2eb0c5e6add9c7268f1687907ac279387a17658ef043e7d3d8c86e165b9",
+      "matches": true,
+      "indexContiguousAndComplete": true,
+      "indexRows": 2413
+    },
+    {
+      "session": 3,
+      "bytes": 2457653,
+      "actualSha256": "88d9e10bdaf6da4cdde69147da7acaccea6caeaa6d362e8868259cab75c58654",
+      "expectedSha256": "88d9e10bdaf6da4cdde69147da7acaccea6caeaa6d362e8868259cab75c58654",
+      "matches": true,
+      "indexContiguousAndComplete": true,
+      "indexRows": 2403
+    },
+    {
+      "session": 4,
+      "bytes": 2457617,
+      "actualSha256": "624a8647bd0f4040dc7591503728849976a7e6468f4fd51cccd311a41e4921aa",
+      "expectedSha256": "624a8647bd0f4040dc7591503728849976a7e6468f4fd51cccd311a41e4921aa",
+      "matches": true,
+      "indexContiguousAndComplete": true,
+      "indexRows": 2397
+    },
+    {
+      "session": 5,
+      "bytes": 2457617,
+      "actualSha256": "c67d87d676b98f4680f6601a52ca88116a7c47022753986316256d44555c4849",
+      "expectedSha256": "c67d87d676b98f4680f6601a52ca88116a7c47022753986316256d44555c4849",
+      "matches": true,
+      "indexContiguousAndComplete": true,
+      "indexRows": 2397
+    },
+    {
+      "session": 6,
+      "bytes": 2457617,
+      "actualSha256": "bc2d9e69cf069616d936a35c7e5445497bcb3d462fe7af64009bbcb2b8bb6e55",
+      "expectedSha256": "bc2d9e69cf069616d936a35c7e5445497bcb3d462fe7af64009bbcb2b8bb6e55",
+      "matches": true,
+      "indexContiguousAndComplete": true,
+      "indexRows": 2397
+    },
+    {
+      "session": 7,
+      "bytes": 2457617,
+      "actualSha256": "12a31a731db241e8c65684a43ae9d406a2785c0238362ac5ea3a3202991ccb95",
+      "expectedSha256": "12a31a731db241e8c65684a43ae9d406a2785c0238362ac5ea3a3202991ccb95",
+      "matches": true,
+      "indexContiguousAndComplete": true,
+      "indexRows": 2397
+    },
+    {
+      "session": 8,
+      "bytes": 2457617,
+      "actualSha256": "ad170a02fac46c72039f16a5cc3348a8dc7009ff8f0fdfe25abe433ef6ecac60",
+      "expectedSha256": "ad170a02fac46c72039f16a5cc3348a8dc7009ff8f0fdfe25abe433ef6ecac60",
+      "matches": true,
+      "indexContiguousAndComplete": true,
+      "indexRows": 2397
+    }
+  ],
+  "writeOpenFailures": {
+    "cases": 4,
+    "allPassed": true,
+    "boundary": "Actual file-open failures and recovery; disk-full and mid-write failures remain untested"
+  },
+  "clipboard": {
+    "native": false,
+    "status": "blocked",
+    "checks": [
+      {
+        "case": "clipboard preservation",
+        "status": "blocked",
+        "reason": "Windows clipboard snapshot unavailable; clipboard left unchanged"
+      }
+    ],
+    "originalClipboardRestored": false,
+    "originalClipboardUntouched": true,
+    "boundary": "Native WebView2 + Windows clipboard when accessible; two-line Unicode fixtures, not a large-text or cross-machine test"
+  },
+  "dpi": {
+    "captures": 1,
+    "observedDevicePixelRatios": [
+      1.75
+    ],
+    "errors": [],
+    "boundary": "Captured monitor transitions only; IME candidate positioning requires separate verification",
+    "status": "blocked",
+    "desktopControlResult": {
+      "status": "blocked",
+      "actualMonitorTransitions": 0,
+      "baselineDevicePixelRatio": 1.75,
+      "availableMonitorScaleFactors": [
+        1.75,
+        1.75,
+        1.5
+      ],
+      "reason": "Desktop interaction helper returned a black window capture; activation failed twice with: failed to activate captured window",
+      "blindInputAttempted": false,
+      "acceptanceClosed": false
+    }
+  },
+  "remaining": [
+    "Windows 10 physical machine",
+    "Machine without WebView2",
+    "Real serial I/O and hotplug",
+    "Serial parity/stop-bit/flow-control hardware compatibility",
+    "Actual disk-full and failures during writes",
+    "Real Chinese IME composition and candidate interaction",
+    "Full remote vim/top application workflows",
+    "Large-text clipboard and broader Win10 coverage",
+    "Real cross-monitor DPI transitions and IME candidate positioning"
+  ],
+  "rustBuild": "Not run: Rust toolchain absent",
+  "decision": "Keep draft; no full acceptance claim",
+  "resourceObservation": {
+    "samples": 40,
+    "minPrivateMiB": 798.1640625,
+    "maxPrivateMiB": 1147.36328125,
+    "boundary": "Partial stress-run observations; browser UI checks ran concurrently. Not a startup, idle or Python comparison benchmark; not proof of absence of memory leaks."
+  }
+}

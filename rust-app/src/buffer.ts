@@ -1,11 +1,11 @@
 import type {DataFrame} from './types';
 export const BUFFER_LIMIT=8*1024*1024;
 export const ROW_LIMIT=8192;
-export interface ReceiveRow {id:number;peer:string;time:string;text:string;readonly hex:string;bytes:Uint8Array;size:number;datagram:boolean}
+export interface ReceiveRow {id:number;epoch:number;peer:string;time:string;text:string;readonly hex:string;bytes:Uint8Array;size:number;datagram:boolean}
 export class ReceiveBuffer {
-  rows:ReceiveRow[]=[];size=0;trimmed=0;trimmedRows=0;version=0;private decoders=new Map<string,TextDecoder>();private encoding='UTF-8';private nextId=0;
-  setEncoding(value:string){if(value!==this.encoding){this.encoding=value;this.decoders.clear();for(const row of this.rows)row.text=this.decode(row.bytes,row.peer,row.datagram);this.version++}}
-  resetDecoders(){this.decoders.clear()}
+  rows:ReceiveRow[]=[];size=0;trimmed=0;trimmedRows=0;version=0;epoch=0;private decoders=new Map<string,TextDecoder>();private encoding='UTF-8';private nextId=0;
+  setEncoding(value:string){if(value!==this.encoding){this.encoding=value;this.decoders.clear();let epoch=-1;for(const row of this.rows){if(row.epoch!==epoch){this.decoders.clear();epoch=row.epoch;}row.text=this.decode(row.bytes,row.peer,row.datagram);}if(epoch!==this.epoch)this.decoders.clear();this.version++}}
+  resetDecoders(){this.decoders.clear();this.epoch++}
   private decode(bytes:Uint8Array,peer:string,datagram:boolean){
     if(this.encoding==='ASCII')return Array.from(bytes,b=>b<128?String.fromCharCode(b):'\uFFFD').join('');
     let decoder=this.decoders.get(peer);if(!decoder){try{decoder=new TextDecoder(this.encoding==='UTF-16'?'utf-16le':this.encoding)}catch{decoder=new TextDecoder('utf-8')}this.decoders.set(peer,decoder)}
@@ -13,7 +13,7 @@ export class ReceiveBuffer {
   }
   append(frame:DataFrame){
     const bytes=new Uint8Array(frame.bytes);const text=this.decode(bytes,frame.peerId,frame.datagram);let cachedHex:string|undefined;
-    const row:ReceiveRow={id:++this.nextId,peer:frame.peerId,time:frame.timestamp,text,get hex(){return cachedHex??(cachedHex=Array.from(bytes,b=>b.toString(16).padStart(2,'0').toUpperCase()).join(' '))},bytes,size:bytes.length,datagram:frame.datagram};
+    const row:ReceiveRow={id:++this.nextId,epoch:this.epoch,peer:frame.peerId,time:frame.timestamp,text,get hex(){return cachedHex??(cachedHex=Array.from(bytes,b=>b.toString(16).padStart(2,'0').toUpperCase()).join(' '))},bytes,size:bytes.length,datagram:frame.datagram};
     this.rows.push(row);this.size+=bytes.length;
     while((this.size>BUFFER_LIMIT||this.rows.length>ROW_LIMIT)&&this.rows.length>1){const old=this.rows.shift()!;this.size-=old.size;this.trimmed+=old.size;this.trimmedRows++;}
     this.version++;

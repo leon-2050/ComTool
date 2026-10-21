@@ -12,14 +12,16 @@ struct Runtime {
     cancel:CancellationToken, sender:Mutex<mpsc::Sender<Control>>, status:Mutex<StatusEvent>,
     rx:Arc<AtomicU64>,tx:Arc<AtomicU64>,dropped:Arc<AtomicU64>,
     ack:Mutex<Option<(u64,oneshot::Sender<()>)>>,schedule:Mutex<Option<CancellationToken>>,transfer:Mutex<Option<CancellationToken>>,
-    datagram:bool,finished:AtomicBool,generation:u64,
+    datagram:bool,finished:AtomicBool,generation:u64,config:SessionConfig,secrets:Secrets,
 }
 struct AppState {
     dir:PathBuf,profile:Mutex<Profile>,runtimes:Mutex<HashMap<String,Arc<Runtime>>>,
     trust:Mutex<HashMap<String,oneshot::Sender<bool>>>,startup_error:String,
     closing:AtomicBool,next_generation:AtomicU64,read_only:AtomicBool,
+    operations:Mutex<HashMap<String,Arc<tokio::sync::Mutex<()>>>>,
 }
 impl AppState {
+    fn operation(&self,id:&str)->Arc<tokio::sync::Mutex<()>>{self.operations.lock().unwrap().entry(id.into()).or_default().clone()}
     fn runtime(&self,id:&str)->Result<Arc<Runtime>,String>{self.runtimes.lock().unwrap().get(id).cloned().ok_or("会话尚未连接".into())}
     fn config(&self,id:&str)->Result<SessionConfig,String>{self.profile.lock().unwrap().sessions.iter().find(|s|s.id==id).cloned().ok_or("会话不存在".into())}
 }
@@ -39,10 +41,20 @@ struct Bootstrap { profile:Profile,legacy_available:bool,startup_error:String }
     if profile.version!=1{return Err("不支持的配置版本".into());}
     let mut ids=std::collections::HashSet::new();for s in &profile.sessions{if s.id.is_empty()||!ids.insert(s.id.clone()){return Err("会话 ID 重复或为空".into());}}
     let mut current=state.profile.lock().unwrap();let mut incoming=profile;incoming.known_hosts=current.known_hosts.clone();
-    profile::save(&state.dir,&incoming)?;*current=incoming;Ok(())
+    for previous in &current.sessions{if previous.kind=="ssh"&&incoming.sessions.iter().find(|s|s.id==previous.id).is_none_or(|next|!previous.same_ssh_identity(next)){profile::forget_secret(&previous.id)?;}}
+    profile::save(&state.dir,&incoming)?;*current=incoming;
+    state.runtimes.lock().unwrap().retain(|id,r|current.sessions.iter().any(|s|s.id==*id)||!r.finished.load(Ordering::Acquire));Ok(())
 }
 #[tauri::command]fn list_ports()->Result<Vec<serde_json::Value>,String>{
-    serialport::available_ports().map(|ports|ports.into_iter().map(|p|serde_json::json!({"device":p.port_name,"description":format!("{:?}",p.port_type)})).collect()).map_err(|e|e.to_string())
+    serialport::available_ports().map(|ports|ports.into_iter().map(|p|{
+        let description=match p.port_type{
+            serialport::SerialPortType::UsbPort(info)=>info.product.filter(|s|!s.trim().is_empty()).or(info.manufacturer.filter(|s|!s.trim().is_empty())).unwrap_or_else(||format!("USB 串口 {:04X}:{:04X}",info.vid,info.pid)),
+            serialport::SerialPortType::BluetoothPort=>"蓝牙串口".into(),
+            serialport::SerialPortType::PciPort=>"PCI 串口".into(),
+            serialport::SerialPortType::Unknown=>"串口".into(),
+        };
+        serde_json::json!({"device":p.port_name,"description":description})
+    }).collect()).map_err(|e|e.to_string())
 }
 #[tauri::command]fn statuses(state:tauri::State<'_,Arc<AppState>>)->Vec<StatusEvent>{
     state.runtimes.lock().unwrap().values().map(|r|{let mut s=r.status.lock().unwrap().clone();s.rx=r.rx.load(Ordering::Relaxed);s.tx=r.tx.load(Ordering::Relaxed);s.dropped=r.dropped.load(Ordering::Relaxed);s}).collect()
@@ -54,17 +66,28 @@ struct Bootstrap { profile:Profile,legacy_available:bool,startup_error:String }
     if let Some(sender)=state.trust.lock().unwrap().remove(&session_id){let _=sender.send(accept);Ok(())}else{Err("此主机确认已过期".into())}
 }
 #[tauri::command]fn connect_session(session_id:String,mut secrets:Secrets,on_data:Channel<DataFrame>,app:tauri::AppHandle,state:tauri::State<'_,Arc<AppState>>)->Result<(),String>{
+    let _operation=state.operation(&session_id).try_lock_owned().map_err(|_|"会话正在应用配置，请稍后再试".to_string())?;
     if state.read_only.load(Ordering::Acquire){return Err("请先完成配置恢复".into());}
     let config=state.config(&session_id)?;config.validate()?;
     if let Some(existing)=state.runtimes.lock().unwrap().get(&session_id){if !existing.finished.load(Ordering::Acquire){return Err("会话已连接、正在连接或正在关闭，请稍后再试".into());}}
-    if config.remember_secret {
-        if secrets.password.is_empty()&&secrets.passphrase.is_empty(){secrets=profile::get_secrets(&session_id)?;}
-    }else{profile::forget_secret(&session_id)?;}
+    secrets=prepare_secrets(&config,secrets,config.remember_secret,state.inner())?;
+    if !config.remember_secret{profile::forget_secret(&session_id)?;}
+    start_connection(session_id,config,secrets,on_data,app,state.inner().clone()).map(|_|())
+}
+fn prepare_secrets(config:&SessionConfig,secrets:Secrets,allow_stored:bool,state:&AppState)->Result<Secrets,String>{
+    if config.kind!="ssh"||!secrets.password.is_empty()||!secrets.passphrase.is_empty(){return Ok(secrets);}
+    if let Some(runtime)=state.runtimes.lock().unwrap().get(&config.id){
+        if runtime.config.same_ssh_identity(config)&&(!runtime.secrets.password.is_empty()||!runtime.secrets.passphrase.is_empty()){return Ok(runtime.secrets.clone());}
+    }
+    if allow_stored{profile::get_secrets(&config.id)}else{Ok(secrets)}
+}
+fn start_connection(session_id:String,config:SessionConfig,secrets:Secrets,on_data:Channel<DataFrame>,app:tauri::AppHandle,state:Arc<AppState>)->Result<u64,String>{
+    if state.closing.load(Ordering::Acquire){return Err("程序正在关闭，未启动新连接".into());}
     let (tx,_rx)=mpsc::channel(1);
     let generation=state.next_generation.fetch_add(1,Ordering::Relaxed)+1;
-    let runtime=Arc::new(Runtime{cancel:CancellationToken::new(),sender:Mutex::new(tx),status:Mutex::new(StatusEvent{session_id:session_id.clone(),generation,state:"connecting".into(),message:"正在连接…".into(),peers:vec![],rx:0,tx:0,dropped:0}),rx:Arc::new(AtomicU64::new(0)),tx:Arc::new(AtomicU64::new(0)),dropped:Arc::new(AtomicU64::new(0)),ack:Mutex::new(None),schedule:Mutex::new(None),transfer:Mutex::new(None),datagram:config.kind=="udp",finished:AtomicBool::new(false),generation});
+    let runtime=Arc::new(Runtime{cancel:CancellationToken::new(),sender:Mutex::new(tx),status:Mutex::new(StatusEvent{session_id:session_id.clone(),generation,state:"connecting".into(),message:"正在连接…".into(),peers:vec![],rx:0,tx:0,dropped:0}),rx:Arc::new(AtomicU64::new(0)),tx:Arc::new(AtomicU64::new(0)),dropped:Arc::new(AtomicU64::new(0)),ack:Mutex::new(None),schedule:Mutex::new(None),transfer:Mutex::new(None),datagram:config.kind=="udp",finished:AtomicBool::new(false),generation,config:config.clone(),secrets:secrets.clone()});
     state.runtimes.lock().unwrap().insert(session_id.clone(),runtime.clone());
-    let shared=state.inner().clone();let task_runtime=runtime.clone();let task_app=app.clone();
+    let shared=state.clone();let task_runtime=runtime.clone();let task_app=app.clone();
     publish(&app,&runtime,&session_id,"connecting","正在连接…".into(),vec![]);
     tauri::async_runtime::spawn(async move{
         let (output,input)=mpsc::channel(128);let pump_runtime=task_runtime.clone();let pump_app=task_app.clone();let pump_config=config.clone();
@@ -86,7 +109,7 @@ struct Bootstrap { profile:Profile,legacy_available:bool,startup_error:String }
                 trust:Arc::new(move|fingerprint|{let shared=trust_shared.clone();let app=trust_app.clone();let runtime=trust_runtime.clone();let id=trust_id.clone();let host=host.clone();Box::pin(async move{
                     if let Some(saved)=shared.profile.lock().unwrap().known_hosts.get(&host).cloned(){return if saved==fingerprint{Ok(true)}else{anyhow::bail!("SSH 主机密钥已变化，连接已拒绝：{host}")};}
                     let(tx,rx)=oneshot::channel();shared.trust.lock().unwrap().insert(id.clone(),tx);
-                    app.emit("host-key",serde_json::json!({"sessionId":id,"host":host,"fingerprint":fingerprint}))?;
+                    app.emit("host-key",serde_json::json!({"sessionId":id,"generation":runtime.generation,"host":host,"fingerprint":fingerprint}))?;
                     let accepted=tokio::select!{_=runtime.cancel.cancelled()=>false,v=tokio::time::timeout(Duration::from_secs(90),rx)=>v.ok().and_then(Result::ok).unwrap_or(false)};
                     shared.trust.lock().unwrap().remove(&id);
                     if accepted{let mut p=shared.profile.lock().unwrap();if let Some(saved)=p.known_hosts.get(&host){if saved!=&fingerprint{anyhow::bail!("SSH 主机密钥已变化");}}p.known_hosts.insert(host,fingerprint);profile::save(&shared.dir,&p).map_err(anyhow::Error::msg)?;}Ok(accepted)
@@ -110,7 +133,37 @@ struct Bootstrap { profile:Profile,legacy_available:bool,startup_error:String }
         task_runtime.cancel.cancel();
         if cancelled&&task_runtime.status.lock().unwrap().state!="error"{publish(&task_app,&task_runtime,&session_id,"disconnected","已断开".into(),vec![]);}
         task_runtime.finished.store(true,Ordering::Release);
-    });Ok(())
+    });Ok(generation)
+}
+#[derive(serde::Serialize)]#[serde(rename_all="camelCase")]
+struct ApplyResult {saved:bool,generation:Option<u64>,error:Option<String>}
+#[tauri::command]async fn apply_connection_config(session_id:String,config:SessionConfig,mut secrets:Secrets,on_data:Channel<DataFrame>,app:tauri::AppHandle,state:tauri::State<'_,Arc<AppState>>)->Result<ApplyResult,String>{
+    let _operation=state.operation(&session_id).try_lock_owned().map_err(|_|"会话正在应用配置，请稍后再试".to_string())?;
+    if state.read_only.load(Ordering::Acquire){return Err("请先完成配置恢复".into());}
+    let previous=state.config(&session_id)?;
+    let candidate=previous.with_connection(&config);candidate.validate()?;
+    secrets=prepare_secrets(&candidate,secrets,previous.remember_secret&&previous.same_ssh_identity(&candidate),state.inner())?;
+    // Resolve credentials before removing their persistent copy, or disrupting the old stream.
+    {
+        let mut current=state.profile.lock().unwrap();let mut incoming=current.clone();
+        let session=incoming.sessions.iter_mut().find(|s|s.id==session_id).ok_or("会话不存在")?;
+        *session=session.with_connection(&candidate);
+        profile::save(&state.dir,&incoming)?;*current=incoming;
+    }
+    if !candidate.remember_secret||(previous.kind=="ssh"&&!previous.same_ssh_identity(&candidate)){if let Err(error)=profile::forget_secret(&session_id){return Ok(ApplyResult{saved:true,generation:None,error:Some(error)})}}
+    let old={state.runtimes.lock().unwrap().get(&session_id).cloned()};
+    if let Some(runtime)=old{if let Err(error)=stop_runtime(&runtime).await{return Ok(ApplyResult{saved:true,generation:None,error:Some(error)})}}
+    match start_connection(session_id,candidate,secrets,on_data,app,state.inner().clone()){
+        Ok(generation)=>Ok(ApplyResult{saved:true,generation:Some(generation),error:None}),
+        Err(error)=>Ok(ApplyResult{saved:true,generation:None,error:Some(error)})
+    }
+}
+async fn stop_runtime(runtime:&Runtime)->Result<(),String>{
+    stop_runtime_with_timeout(runtime,Duration::from_secs(10)).await
+}
+async fn stop_runtime_with_timeout(runtime:&Runtime,timeout:Duration)->Result<(),String>{
+    runtime.cancel.cancel();if let Some(t)=runtime.schedule.lock().unwrap().take(){t.cancel();}if let Some(t)=runtime.transfer.lock().unwrap().take(){t.cancel();}
+    tokio::time::timeout(timeout,async{while !runtime.finished.load(Ordering::Acquire){tokio::time::sleep(Duration::from_millis(10)).await;}}).await.map_err(|_|"旧连接关闭超时，未启动新连接；请等待端口释放后重试".to_string())
 }
 async fn pump_data(mut input:mpsc::Receiver<Incoming>,channel:Channel<DataFrame>,runtime:Arc<Runtime>,app:tauri::AppHandle,config:SessionConfig){
     let mut sequence=0u64;let mut log=None;let mut index=None;let mut offset=0u64;let mut pending=None;
@@ -159,8 +212,9 @@ async fn record_sent(mut input:mpsc::Receiver<Packet>,runtime:Arc<Runtime>,app:t
     }.await;
     if let Err(e)=result{failed.store(true,Ordering::Relaxed);notice(&app,&runtime,&config.id,format!("发送记录写入失败，记录已停止：{e}"));}
 }
-#[tauri::command]fn disconnect_session(session_id:String,state:tauri::State<'_,Arc<AppState>>)->Result<(),String>{
-    let r=state.runtime(&session_id)?;r.cancel.cancel();if let Some(t)=r.schedule.lock().unwrap().take(){t.cancel();}if let Some(t)=r.transfer.lock().unwrap().take(){t.cancel();}Ok(())
+#[tauri::command]async fn disconnect_session(session_id:String,state:tauri::State<'_,Arc<AppState>>)->Result<(),String>{
+    let _operation=state.operation(&session_id).try_lock_owned().map_err(|_|"会话正在应用配置，请稍后再试".to_string())?;
+    let r=state.runtime(&session_id)?;stop_runtime(&r).await
 }
 async fn enqueue(runtime:&Runtime,bytes:Vec<u8>,peer:Option<String>)->Result<(),String>{
     enqueue_with_token(runtime,bytes,peer,None).await
@@ -181,7 +235,7 @@ async fn enqueue_with_token(runtime:&Runtime,bytes:Vec<u8>,peer:Option<String>,t
     if bytes.len()>65536{return Err("发送块超过 64 KiB".into());}let r=state.runtime(&session_id)?;enqueue(&r,bytes,None).await
 }
 #[tauri::command]async fn send_terminal_input(session_id:String,text:String,peer:Option<String>,state:tauri::State<'_,Arc<AppState>>)->Result<(),String>{
-    let config=state.config(&session_id)?;if config.kind=="tcp"&&config.server&&peer.is_none(){return Err("请先选择一个 TCP 客户端".into());}let bytes=encode_text(&text,&config.encoding)?;if bytes.len()>65536{return Err("终端输入超过 64 KiB".into());}let r=state.runtime(&session_id)?;enqueue(&r,bytes,peer).await
+    let config=state.config(&session_id)?;let r=state.runtime(&session_id)?;if r.config.kind=="tcp"&&r.config.server&&peer.is_none(){return Err("请先选择一个 TCP 客户端".into());}let bytes=encode_text(&text,&config.encoding)?;if bytes.len()>65536{return Err("终端输入超过 64 KiB".into());}enqueue(&r,bytes,peer).await
 }
 #[tauri::command]async fn resize_terminal(session_id:String,cols:u32,rows:u32,state:tauri::State<'_,Arc<AppState>>)->Result<(),String>{
     let r=state.runtime(&session_id)?;let tx=r.sender.lock().unwrap().clone();tx.send(Control::Resize{cols,rows}).await.map_err(|e|e.to_string())
@@ -198,13 +252,13 @@ async fn enqueue_with_token(runtime:&Runtime,bytes:Vec<u8>,peer:Option<String>,t
     });Ok(())
 }
 #[tauri::command]async fn send_file(session_id:String,path:String,peer:Option<String>,app:tauri::AppHandle,state:tauri::State<'_,Arc<AppState>>)->Result<(),String>{
-    let config=state.config(&session_id)?;
-    let r=state.runtime(&session_id)?;if let Some(t)=r.transfer.lock().unwrap().take(){t.cancel();}let token=r.cancel.child_token();*r.transfer.lock().unwrap()=Some(token.clone());
+    let r=state.runtime(&session_id)?;let config=r.config.clone();
+    if let Some(t)=r.transfer.lock().unwrap().take(){t.cancel();}let token=r.cancel.child_token();*r.transfer.lock().unwrap()=Some(token.clone());
     let mut file=tokio::fs::File::open(path).await.map_err(|e|e.to_string())?;let total=file.metadata().await.map_err(|e|e.to_string())?.len();let mut sent=0u64;let mut buffer=vec![0;if config.kind=="udp"{61440}else{65536}];
     if config.kind=="udp"{notice(&app,&r,&session_id,"UDP 文件按 60 KiB 分报文发送，接收端需要自行处理丢包与顺序".into());}
     loop{let n=tokio::select!{_=token.cancelled()=>return Ok(()),r=file.read(&mut buffer)=>r.map_err(|e|e.to_string())?};if n==0{break;}
         tokio::select!{_=token.cancelled()=>return Ok(()),r=enqueue_with_token(&r,buffer[..n].to_vec(),peer.clone(),Some(token.clone()))=>r?};sent+=n as u64;
-        let _=app.emit("file-progress",serde_json::json!({"sessionId":session_id,"sent":sent,"total":total}));
+        let _=app.emit("file-progress",serde_json::json!({"sessionId":session_id,"generation":r.generation,"sent":sent,"total":total}));
     }Ok(())
 }
 #[tauri::command]fn cancel_transfer(session_id:String,state:tauri::State<'_,Arc<AppState>>)->Result<(),String>{let r=state.runtime(&session_id)?;if let Some(t)=r.transfer.lock().unwrap().take(){t.cancel();}Ok(())}
@@ -233,13 +287,32 @@ fn backup_current(dir:&std::path::Path)->Result<(),String>{let current=dir.join(
 }
 pub fn run(){
     let dir=profile::directory();let (loaded,startup_error)=match profile::load(&dir){Ok(p)=>(p,String::new()),Err(e)=>(Profile::default(),e)};
-    let read_only=!startup_error.is_empty();let shared=Arc::new(AppState{dir,profile:Mutex::new(loaded),runtimes:Mutex::new(HashMap::new()),trust:Mutex::new(HashMap::new()),startup_error,closing:AtomicBool::new(false),next_generation:AtomicU64::new(0),read_only:AtomicBool::new(read_only)});
+    let read_only=!startup_error.is_empty();let shared=Arc::new(AppState{dir,profile:Mutex::new(loaded),runtimes:Mutex::new(HashMap::new()),trust:Mutex::new(HashMap::new()),startup_error,closing:AtomicBool::new(false),next_generation:AtomicU64::new(0),read_only:AtomicBool::new(read_only),operations:Mutex::new(HashMap::new())});
     tauri::Builder::default().plugin(tauri_plugin_dialog::init()).manage(shared.clone())
-        .invoke_handler(tauri::generate_handler![bootstrap,save_profile,recover_profile,list_ports,statuses,connect_session,disconnect_session,send_input,send_bytes,send_terminal_input,resize_terminal,ack_data,respond_host_key,disconnect_peer,schedule_send,send_file,cancel_transfer,import_config,export_config,ui_ready])
+        .invoke_handler(tauri::generate_handler![bootstrap,save_profile,recover_profile,list_ports,statuses,connect_session,apply_connection_config,disconnect_session,send_input,send_bytes,send_terminal_input,resize_terminal,ack_data,respond_host_key,disconnect_peer,schedule_send,send_file,cancel_transfer,import_config,export_config,ui_ready])
         .on_window_event(move|window,event|if let tauri::WindowEvent::CloseRequested{api,..}=event{
             api.prevent_close();if shared.closing.swap(true,Ordering::AcqRel){return;}
             let runtimes:Vec<_>=shared.runtimes.lock().unwrap().values().cloned().collect();for r in &runtimes{r.cancel.cancel();}
             let closing_window=window.clone();tauri::async_runtime::spawn(async move{while runtimes.iter().any(|r|!r.finished.load(Ordering::Acquire)){tokio::time::sleep(Duration::from_millis(10)).await;}let _=closing_window.destroy();});
         })
         .run(tauri::generate_context!()).expect("ComTool desktop runtime failed");
+}
+
+#[cfg(test)] mod lifecycle_tests {
+    use super::*;
+    fn runtime()->Arc<Runtime>{
+        let config=SessionConfig::default();let(tx,_rx)=mpsc::channel(1);
+        Arc::new(Runtime{cancel:CancellationToken::new(),sender:Mutex::new(tx),status:Mutex::new(StatusEvent{session_id:config.id.clone(),generation:1,state:"connected".into(),message:String::new(),peers:vec![],rx:0,tx:0,dropped:0}),rx:Arc::new(AtomicU64::new(0)),tx:Arc::new(AtomicU64::new(0)),dropped:Arc::new(AtomicU64::new(0)),ack:Mutex::new(None),schedule:Mutex::new(None),transfer:Mutex::new(None),datagram:false,finished:AtomicBool::new(false),generation:1,config,secrets:Secrets::default()})
+    }
+    #[tokio::test]async fn cancellation_waits_for_actual_finish(){
+        let r=runtime();let schedule=CancellationToken::new();let transfer=CancellationToken::new();
+        *r.schedule.lock().unwrap()=Some(schedule.clone());*r.transfer.lock().unwrap()=Some(transfer.clone());
+        let worker=r.clone();tokio::spawn(async move{worker.cancel.cancelled().await;tokio::time::sleep(Duration::from_millis(30)).await;worker.finished.store(true,Ordering::Release);});
+        stop_runtime_with_timeout(&r,Duration::from_secs(1)).await.unwrap();
+        assert!(r.finished.load(Ordering::Acquire));assert!(schedule.is_cancelled());assert!(transfer.is_cancelled());
+    }
+    #[tokio::test]async fn closing_timeout_does_not_claim_resource_release(){
+        let r=runtime();let error=stop_runtime_with_timeout(&r,Duration::from_millis(20)).await.unwrap_err();
+        assert!(error.contains("未启动新连接"));assert!(r.cancel.is_cancelled());assert!(!r.finished.load(Ordering::Acquire));
+    }
 }

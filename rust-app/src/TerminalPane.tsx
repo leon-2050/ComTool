@@ -47,7 +47,7 @@ export default function TerminalPane({session,peer,active,connected,register,err
       if(encoding==='ASCII'){t.write(Array.from(bytes,b=>b<128?String.fromCharCode(b):'\uFFFD').join(''),()=>{scheduleHighlight();resolve()});return;}
       if(!decoder||decoderEncoding!==encoding){decoderEncoding=encoding;try{decoder=new TextDecoder(encoding==='UTF-16'?'utf-16le':encoding)}catch{decoder=new TextDecoder()}}
       t.write(decoder.decode(bytes,{stream:true}),()=>{scheduleHighlight();resolve()});
-    }),clear:()=>{for(const row of decorations.values())row.values.forEach(v=>v.dispose());decorations.clear();t.reset();decoder=undefined;},search:text=>search.findNext(text),copy:()=>t.getSelection()};self.current=handle;
+    }),clear:()=>{for(const row of decorations.values())row.values.forEach(v=>v.dispose());decorations.clear();t.write('\x1bc');decoder=undefined;},search:text=>search.findNext(text),copy:()=>t.getSelection()};self.current=handle;
     return()=>{register(session.id,null);observer.disconnect();subscriptions.forEach(s=>s.dispose());if(frame)cancelAnimationFrame(frame);for(const row of decorations.values())row.values.forEach(v=>v.dispose());t.dispose();terminal.current=null;fit.current=null;self.current=null;};
   },[session.id]);
   useEffect(()=>{if(terminal.current){terminal.current.options.fontSize=session.fontSize;if(active)requestAnimationFrame(()=>{fit.current?.fit();terminal.current?.focus();if(connected&&terminal.current)void call('resize_terminal',{sessionId:session.id,cols:terminal.current.cols,rows:terminal.current.rows}).catch(error);});}},[session.fontSize,active,connected]);
