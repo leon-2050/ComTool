@@ -37,7 +37,7 @@ ComTool $version（Windows x64 预览版）
 许可证文件位于 licenses/，源码：https://github.com/leon-2050/ComTool/tree/main/rust-app
 此版本未配置自动更新，需要手动下载安装新版。
 "@
-Set-Content -LiteralPath (Join-Path $outputRoot '使用说明.txt') -Value $readme -Encoding utf8
+Set-Content -LiteralPath (Join-Path $outputRoot 'README-zh-CN.txt') -Value $readme -Encoding utf8
 Set-Content -LiteralPath (Join-Path $portableRoot '使用说明.txt') -Value $readme -Encoding utf8
 $portableZip = Join-Path $outputRoot "ComTool-${version}-Windows-x64-portable.zip"
 Compress-Archive -LiteralPath $portableRoot -DestinationPath $portableZip -CompressionLevel Optimal
