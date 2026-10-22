@@ -7,7 +7,7 @@ $projectRoot = Split-Path $PSScriptRoot -Parent
 $version = (Get-Content (Join-Path $projectRoot 'package.json') -Raw | ConvertFrom-Json).version
 if (-not $CargoTargetDirectory) { $CargoTargetDirectory = Join-Path $projectRoot 'src-tauri/target' }
 $releaseRoot = Join-Path $CargoTargetDirectory 'release'
-$binary = Join-Path $releaseRoot 'ComTool.exe'
+$binary = Join-Path $releaseRoot 'distribution/ComTool.exe'
 $installer = Get-ChildItem (Join-Path $releaseRoot 'bundle/nsis') -Filter "*_${version}_x64-setup.exe" | Select-Object -First 1
 if (-not (Test-Path -LiteralPath $binary) -or -not $installer) { throw '请先完成 Windows NSIS 构建。' }
 if (Test-Path -LiteralPath $OutputDirectory) { throw '输出目录已存在，请使用新的目录。' }

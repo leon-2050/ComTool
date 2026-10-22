@@ -13,6 +13,8 @@
 
 构建锁定 Rust 版本和依赖，第三方 Actions 固定到提交 SHA。只有独立 publish job 有内容写权限，PR 构建无发布权限。当前流程始终发布**未签名预览版**，不会宣称已获 SignPath 支持。其 NSIS 安装、启动、卸载测试使用隔离配置；测试报告不含真实用户凭据。
 
+安装包编译期间留存实际内嵌程序到 `release/distribution/ComTool.exe`。安装验收、签名检查和绿色版都使用这个文件，不使用 Tauri 在打包结束后恢复的原始程序；两种分发方式的程序 SHA-256 必须一致。
+
 签名审批通过后，另行配置 SignPath 项目、来源验证、产品限制、签名产物和人工审批，再验收签名成功路径。当前本机证书签名脚本不代表 SignPath 集成已经完成。
 
 现场验收仍见 [VALIDATION.md](VALIDATION.md)。Windows Server 2022 runner 不能替代 Windows 10 实机和真实串口。

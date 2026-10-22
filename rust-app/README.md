@@ -24,6 +24,8 @@ NSIS 安装包为当前用户安装，检测并处理 WebView2 缺失。免安�
 
 构建后可运行 `./scripts/package-windows.ps1 -OutputDirectory <新输出目录>` 同时整理安装版、绿色版及校验值；使用自定义 Cargo 输出目录时设置 `CARGO_TARGET_DIR` 或传入 `-CargoTargetDirectory`。
 
+绿色版从 NSIS 编译时留存的 `release/distribution/ComTool.exe` 取程序，确保与安装包内的程序字节一致。不要用 Tauri 打包后恢复的 `release/ComTool.exe` 替代该分发文件。
+
 `-NoBundle` 仅生成内嵌界面的独立程序；`-SkipInstall` 复用已有前端依赖。Cargo.lock 和 package-lock.json 锁定依赖，Windows 使用静态 MSVC CRT。
 
 ## 验证

@@ -28,6 +28,8 @@
 
 输出目录必须是新目录；中途失败的构建不得当作正式签名发布。需要验证安装包内部卸载程序时，使用隔离安装检查并对安装后的 uninstall.exe 执行 `Get-AuthenticodeSignature`；本次由于无证书，未验证成功签名路径。
 
+NSIS 编译钩子在构建期间留存安装包实际包含的程序到 `release/distribution/ComTool.exe`，签名检查和绿色版均使用它；钩子不添加安装时运行的命令。Tauri 会在打包后恢复原始程序，因此不能直接将 `release/ComTool.exe` 当作已签名分发程序。
+
 签名不会自动保证免除 SmartScreen 提示；签名验证与 SmartScreen 信誉是不同检查。不要在签名后改动 EXE，重新打包/签名后需重新生成校验值。
 
 ## 本次验证边界

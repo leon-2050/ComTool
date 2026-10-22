@@ -69,14 +69,14 @@ jobs:
       - name: Test and build Windows installer
         run: ./scripts/build-windows.ps1
       - name: Check unsigned signing safeguards
-        run: ./tests/signing-check.ps1 -UnsignedBinary "$env:CARGO_TARGET_DIR/release/ComTool.exe"
+        run: ./tests/signing-check.ps1 -UnsignedBinary "$env:CARGO_TARGET_DIR/release/distribution/ComTool.exe"
       - name: Check actual installation, desktop modes and uninstall
         run: |
           $installer = Get-ChildItem "$env:CARGO_TARGET_DIR/release/bundle/nsis/*_x64-setup.exe" | Select-Object -First 1
-          ./tests/windows-package-check.ps1 -Installer $installer.FullName -PortableBinary "$env:CARGO_TARGET_DIR/release/ComTool.exe" -OutputDirectory "$env:RUNNER_TEMP/comtool-install-check"
+          ./tests/windows-package-check.ps1 -Installer $installer.FullName -PortableBinary "$env:CARGO_TARGET_DIR/release/distribution/ComTool.exe" -OutputDirectory "$env:RUNNER_TEMP/comtool-install-check"
       - name: Check TCP/UDP apply and reconnect
         run: |
-          node tests/native-apply-config.mjs "$env:CARGO_TARGET_DIR/release/ComTool.exe" "$env:RUNNER_TEMP/comtool-apply-check"
+          node tests/native-apply-config.mjs "$env:CARGO_TARGET_DIR/release/distribution/ComTool.exe" "$env:RUNNER_TEMP/comtool-apply-check"
           if ($LASTEXITCODE) { throw 'TCP/UDP apply regression failed' }
       - name: Package preview and exact source
         env:

@@ -24,7 +24,7 @@ try {
     $env:CARGO_TARGET_DIR = $CargoTargetDirectory
     & (Join-Path $PSScriptRoot 'build-windows.ps1') -SkipInstall:$SkipInstall -SigningConfigPath $configPath
     $version = (Get-Content (Join-Path $projectRoot 'package.json') -Raw | ConvertFrom-Json).version
-    $binary = Join-Path $CargoTargetDirectory 'release/ComTool.exe'
+    $binary = Join-Path $CargoTargetDirectory 'release/distribution/ComTool.exe'
     $installer = Get-ChildItem (Join-Path $CargoTargetDirectory 'release/bundle/nsis') -Filter "*_${version}_x64-setup.exe" | Select-Object -First 1
     if (-not $installer) { throw '缺少本次安装包。' }
     $report = @((Assert-ComToolSignature -Path $binary -Thumbprint $thumb),(Assert-ComToolSignature -Path $installer.FullName -Thumbprint $thumb))
