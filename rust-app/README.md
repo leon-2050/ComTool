@@ -4,6 +4,18 @@
 
 来源：[Neutree/COMTool](https://github.com/Neutree/COMTool)。本仓库保留上游历史、作者声明与 LGPL-3.0 许可。重写实现、沿用的图标和显示高亮规则以 LGPL-3.0-only 提供；依赖各自的许可见 `src-tauri/licenses/`。预览版不能视为全部硬件与性能验收已完成。
 
+## 下载与安装
+
+普通使用不需要 Python、Node.js 或 Rust 工具链。当前 Windows x64 下载：[0.1.1 预览版发布页](https://github.com/leon-2050/ComTool/releases/tag/rust-v0.1.1-preview.1)。
+
+- **安装版**：下载 `ComTool-0.1.1-Windows-x64-setup.exe`，运行安装向导，完成后从桌面或开始菜单打开 **ComTool Rust Preview**。安装范围为当前用户，缺少 WebView2 时尝试联网安装。
+- **绿色版**：下载 `ComTool-0.1.1-Windows-x64-portable.zip`，全部解压后运行 `ComTool/ComTool.exe`，保留同目录文件。需要系统已安装 [Microsoft WebView2 Evergreen Runtime](https://developer.microsoft.com/microsoft-edge/webview2/#download-section)。
+- **源码包**：`ComTool-0.1.1-source.zip` 用于阅读或自行构建，不是可直接运行的软件包。
+
+当前包**未签名**，SignPath Foundation 申请已提交但未获批。请核对本仓库下载来源及同一发布页的 `SHA256SUMS.txt`。Windows 11 的相关验证已完成，Win10 实机及无运行库安装等场景仍待验收。
+
+详细安装步骤、首次连接、下载校验、升级、卸载及常见问题见[项目主页安装指南](../README.MD#windows-install)。安装版与绿色版共用 AppData 配置；绿色版不是配置随程序目录移动的便携模式，当前没有自动更新。
+
 ## 使用
 
 NSIS 安装包为当前用户安装，检测并处理 WebView2 缺失。免安装版需要已安装 Microsoft Edge WebView2 Runtime。普通启动没有闪屏和控制台日志。
