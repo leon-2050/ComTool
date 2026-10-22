@@ -45,5 +45,5 @@ $hashes = @($installerTarget, $portableZip) | ForEach-Object {
     $hash = Get-FileHash -LiteralPath $_ -Algorithm SHA256
     "$($hash.Hash.ToLower())  $([System.IO.Path]::GetFileName($_))"
 }
-Set-Content -LiteralPath (Join-Path $outputRoot 'SHA256SUMS.txt') -Value $hashes -Encoding ascii
+[IO.File]::WriteAllText((Join-Path $outputRoot 'SHA256SUMS.txt'), ($hashes -join "`n") + "`n", [Text.Encoding]::ASCII)
 Write-Host "安装版和绿色版已生成：$outputRoot"

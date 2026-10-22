@@ -95,9 +95,10 @@ jobs:
             hardwareAcceptance = 'pending'
             runner = 'windows-2022'
           } | ConvertTo-Json | Set-Content "$output/build-manifest.json" -Encoding utf8
-          Get-ChildItem $output -File | Where-Object Name -ne 'SHA256SUMS.txt' | Sort-Object Name | ForEach-Object {
+          $checksums = @(Get-ChildItem $output -File | Where-Object Name -ne 'SHA256SUMS.txt' | Sort-Object Name | ForEach-Object {
             "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
-          } | Set-Content "$output/SHA256SUMS.txt" -Encoding ascii
+          })
+          [IO.File]::WriteAllText("$output/SHA256SUMS.txt", ($checksums -join "`n") + "`n", [Text.Encoding]::ASCII)
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ComTool-Windows-${{ steps.metadata.outputs.version }}
