@@ -22,12 +22,20 @@ NSIS 安装包为当前用户安装，检测并处理 WebView2 缺失。免安�
 ./scripts/build-windows.ps1
 ```
 
-`-NoBundle` 仅生成程序；`-SkipInstall` 复用已有前端依赖。Cargo.lock 和 package-lock.json 锁定依赖，Windows 使用静态 MSVC CRT。
+构建后可运行 `./scripts/package-windows.ps1 -OutputDirectory <新输出目录>` 同时整理安装版、绿色版及校验值；使用自定义 Cargo 输出目录时设置 `CARGO_TARGET_DIR` 或传入 `-CargoTargetDirectory`。
+
+`-NoBundle` 仅生成内嵌界面的独立程序；`-SkipInstall` 复用已有前端依赖。Cargo.lock 和 package-lock.json 锁定依赖，Windows 使用静态 MSVC CRT。
 
 ## 验证
+
+GitHub Actions 的 **Rust Windows** 工作流自动检查 PR/main，并可手动发布未签名预览版。完整步骤和权限边界见 [RELEASING.md](RELEASING.md)。
 
 `npm test` 验证显示缓冲和高亮；Rust release 单元测试使用真实 TCP/UDP 回环。启动开发服务器后 `node tests/ui-check.mjs` 检查浏览器中的主题、缩放及终端字节夹具。
 
 `node tests/native-smoke.mjs`、`node tests/native-ssh.mjs`、`node tests/native-network.mjs` 运行真实 Release 桌面程序。SSH 测试需要 Python Paramiko，网络测试默认持续 600 秒。它们使用独立配置目录、本机临时端口与生成的测试密钥，绝不使用实际用户凭据。测试通过 WebView2 调试接口自动操作；正式应用默认不开启该接口。生成密钥、配置及日志不可提交。
 
 真实串口拔插、特殊校验/停止位与流控必须用硬件另外验收。协议脚本、图表、外部 Python 插件及分离窗口继续使用 Python 版。
+
+## Windows 代码签名
+
+正式证书准备好后使用 `scripts/build-signed-windows.ps1`；先用 `-CheckOnly` 检查，再构建签名包。配置、命令与验收边界见 [SIGNING.md](SIGNING.md)。现有 0.1.1 下载包仍未签名。

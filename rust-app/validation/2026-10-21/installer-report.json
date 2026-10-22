@@ -1,0 +1,15 @@
+{
+  "version": "0.1.1",
+  "installExitCode": 0,
+  "installedMatchesPortable": true,
+  "licenseFileCount": 23,
+  "desktopAndStartMenuShortcuts": true,
+  "installedStartup": true,
+  "protocolModes": true,
+  "uninstallExitCode": 0,
+  "uninstallRegistrationRemoved": true,
+  "shortcutsRemoved": true,
+  "realUserConfigUntouched": true,
+  "webviewAlreadyInstalled": true,
+  "boundary": "Current Windows host, existing WebView2; clean Win10 and missing-runtime installation remain unverified."
+}

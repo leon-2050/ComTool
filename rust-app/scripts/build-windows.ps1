@@ -1,4 +1,5 @@
-param([switch]$SkipInstall, [switch]$NoBundle)
+param([switch]$SkipInstall, [switch]$NoBundle, [string]$SigningConfigPath)
+if ($SigningConfigPath -and $NoBundle) { throw '签名构建必须同时生成安装包，请使用 build-signed-windows.ps1。' }
 $ErrorActionPreference = 'Stop'
 Set-Location (Split-Path $PSScriptRoot -Parent)
 # A standard rustup installation is preferred. The workspace toolchain is optional.
@@ -20,7 +21,10 @@ if (-not $SkipInstall) { & npm ci; if ($LASTEXITCODE) { throw '前端依赖安�
 if ($LASTEXITCODE) { throw 'Rust 测试失败' }
 if ($NoBundle) {
     & npm run build; if ($LASTEXITCODE) { throw '界面构建失败' }
-    & cmd.exe /d /s /c "`"$vcvars`" >nul && cargo build --manifest-path src-tauri/Cargo.toml --release --locked"
+    & cmd.exe /d /s /c "`"$vcvars`" >nul && cargo build --manifest-path src-tauri/Cargo.toml --release --locked --features tauri/custom-protocol"
+} elseif ($SigningConfigPath) {
+    $signingConfig = (Resolve-Path -LiteralPath $SigningConfigPath).Path
+    & cmd.exe /d /s /c "`"$vcvars`" >nul && node node_modules/@tauri-apps/cli/tauri.js build --ci --config `"$signingConfig`""
 } else {
     & cmd.exe /d /s /c "`"$vcvars`" >nul && node node_modules/@tauri-apps/cli/tauri.js build --ci"
 }

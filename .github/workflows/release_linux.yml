@@ -14,6 +14,7 @@ on:
 jobs:
   # This workflow contains a single job called "build"
   build:
+    if: github.event_name != 'release' || !startsWith(github.event.release.tag_name, 'rust-v')
     name: release and upload assets task
     # The type of runner that the job will run on
     strategy:

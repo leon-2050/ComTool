@@ -1,0 +1,142 @@
+name: Rust Windows
+
+on:
+  push:
+    branches: [main]
+    tags: ['rust-v*']
+    paths: ['rust-app/**', '.github/workflows/rust-windows.yml', 'CODE_SIGNING_POLICY.md']
+  pull_request:
+    paths: ['rust-app/**', '.github/workflows/rust-windows.yml', 'CODE_SIGNING_POLICY.md']
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish an unsigned Windows preview after all checks pass
+        type: boolean
+        default: false
+      tag:
+        description: New preview tag (must match the package version)
+        type: string
+        default: rust-v0.1.1-preview.1
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-windows-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: rust-app
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/rust-target
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+      tag: ${{ steps.metadata.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: rust-app/package-lock.json
+      - name: Check versions and release request
+        id: metadata
+        env:
+          REQUESTED_TAG: ${{ inputs.tag }}
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $tauriVersion = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $cargoVersion = (Select-String -Path src-tauri/Cargo.toml -Pattern '^version = "([^"]+)"').Matches[0].Groups[1].Value
+          if ($version -ne $tauriVersion -or $version -ne $cargoVersion) { throw 'Package versions disagree' }
+          $tag = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME } elseif ($env:REQUESTED_TAG) { $env:REQUESTED_TAG } else { "rust-v$version-preview.1" }
+          if ($tag -notmatch ('^rust-v' + [regex]::Escape($version) + '-preview\.[1-9][0-9]*$')) { throw 'Only matching preview tags may be published' }
+          if ($env:PUBLISH -eq 'true' -and $env:GITHUB_REF -ne 'refs/heads/main') { throw 'Manual publication must run from main' }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup show active-toolchain
+          if ($LASTEXITCODE) { throw 'Pinned Rust toolchain installation failed' }
+      - name: Test and build Windows installer
+        run: ./scripts/build-windows.ps1
+      - name: Check unsigned signing safeguards
+        run: ./tests/signing-check.ps1 -UnsignedBinary "$env:CARGO_TARGET_DIR/release/ComTool.exe"
+      - name: Check actual installation, desktop modes and uninstall
+        run: |
+          $installer = Get-ChildItem "$env:CARGO_TARGET_DIR/release/bundle/nsis/*_x64-setup.exe" | Select-Object -First 1
+          ./tests/windows-package-check.ps1 -Installer $installer.FullName -PortableBinary "$env:CARGO_TARGET_DIR/release/ComTool.exe" -OutputDirectory "$env:RUNNER_TEMP/comtool-install-check"
+      - name: Check TCP/UDP apply and reconnect
+        run: |
+          node tests/native-apply-config.mjs "$env:CARGO_TARGET_DIR/release/ComTool.exe" "$env:RUNNER_TEMP/comtool-apply-check"
+          if ($LASTEXITCODE) { throw 'TCP/UDP apply regression failed' }
+      - name: Package preview and exact source
+        env:
+          VERSION: ${{ steps.metadata.outputs.version }}
+        run: |
+          $output = "$env:GITHUB_WORKSPACE/release-artifacts"
+          ./scripts/package-windows.ps1 -OutputDirectory $output
+          git -C $env:GITHUB_WORKSPACE archive --format=zip --output="$output/ComTool-$env:VERSION-source.zip" HEAD
+          if ($LASTEXITCODE) { throw 'Source archive failed' }
+          Copy-Item "release-notes/$($env:VERSION).md" "$output/release-notes.md"
+          @{
+            version = $env:VERSION
+            commit = $env:GITHUB_SHA
+            workflowRun = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+            signingStatus = 'unsigned'
+            hardwareAcceptance = 'pending'
+            runner = 'windows-2022'
+          } | ConvertTo-Json | Set-Content "$output/build-manifest.json" -Encoding utf8
+          Get-ChildItem $output -File | Where-Object Name -ne 'SHA256SUMS.txt' | Sort-Object Name | ForEach-Object {
+            "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
+          } | Set-Content "$output/SHA256SUMS.txt" -Encoding ascii
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ComTool-Windows-${{ steps.metadata.outputs.version }}
+          path: release-artifacts/*.*
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload installation evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: Windows-installation-evidence
+          path: ${{ runner.temp }}/comtool-install-check/installer-report.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  publish:
+    needs: build
+    if: >-
+      github.repository == 'leon-2050/ComTool' &&
+      ((github.event_name == 'push' && startsWith(github.ref, 'refs/tags/rust-v')) ||
+       (github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'))
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: ComTool-Windows-${{ needs.build.outputs.version }}
+          path: release-artifacts
+      - name: Verify checksums and publish preview
+        working-directory: release-artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.build.outputs.tag }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          sha256sum --check SHA256SUMS.txt
+          gh release create "$RELEASE_TAG" ./* \
+            --target "$GITHUB_SHA" --title "ComTool Rust $VERSION Preview (unsigned)" \
+            --notes-file release-notes.md --prerelease --latest=false
