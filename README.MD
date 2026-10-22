@@ -91,27 +91,33 @@ Get-FileHash .\ComTool-0.1.1-Windows-x64-portable.zip -Algorithm SHA256
 
 真实串口、Win10 实机、无 WebView2 环境、中文输入法/剪贴板、真实跨屏缩放、完整 SSH 远端程序和磁盘满仍有待验收。完整记录见 [Rust 测试报告](rust-app/VALIDATION.md)。
 
-## Python 版界面与功能
+## 当前版本界面与功能
 
-以下截图及本节说明对应保留的 Python 版；Rust 版使用方法见上面的安装与操作说明。
+以下截图来自当前发布的 **Rust 0.1.1 预览版**，使用独立的示例配置，均未连接设备。下载方式见上面的[下载与安装](#windows-install)。
 
-![ComTool 浅色通信工作台](docs/images/workbench-light.png)
+![Rust 0.1.1 浅色收发工作台](docs/images/rust-0.1.1-light.png)
 
-### 功能
+### 串口、TCP/UDP 收发工作台
 
-- 串口调试：文本/HEX 收发、发送历史、文件发送、自定义发送与通信记录。
-- 网络调试：保留上游 TCP/UDP 客户端及服务端实现。
-- SSH 终端：ANSI 亮色、256 色、RGB、字体样式与可关闭的关键词高亮。
-- 多会话工作台：会话列表、搜索、分离/恢复、浅色/深色主题和统一连接入口。
-
-本次修改重做了界面、图标与启动流程，并修复终端高 DPI、颜色和选区等问题。主要操作与验证说明见 [使用说明](README_UI_ZH.md)。
+- 串口、TCP、UDP 使用收发界面，支持文本/HEX、发送历史、原始文件发送、自定义发送、定时发送与通信记录。
+- 右侧连接配置常驻；串口设备自动枚举为下拉列表，波特率等常用参数直接可见。连接中修改参数后，点击“应用并重连”才生效，也可撤销修改。
+- 重连保留收发记录；定时发送和文件发送停止后不会自动恢复。
+- 支持多会话切换、浅色/深色主题和配置导入导出；窄窗口可通过左上方按钮展开会话列表。
 
 <details>
 <summary>深色主题</summary>
 
-![ComTool 深色通信工作台](docs/images/workbench-dark.png)
+![Rust 0.1.1 深色收发工作台](docs/images/rust-0.1.1-dark.png)
 
 </details>
+
+### SSH 交互终端
+
+![Rust 0.1.1 SSH 交互终端](docs/images/rust-0.1.1-ssh.png)
+
+SSH 固定使用交互终端，支持密码或私钥认证、主机指纹确认、ANSI 显示与终端搜索；不显示串口式收发编辑区。重连会重新初始化终端。图中为未连接状态，不代表已连接远端。
+
+协议、图表、外部 Python 插件及旧版界面说明见 [Python 版使用说明](README_UI_ZH.md)，这些功能尚未全部迁移到 Rust 版。
 
 ## Python 版：从源码运行
 
